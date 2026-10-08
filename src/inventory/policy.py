@@ -360,6 +360,8 @@ def run_policy(
 # ----------------------------------------------------------------------------- pipeline
 
 POLICIES = {"Clásica (media móvil)": None, "SeasonalNaive": "SeasonalNaive", "LightGBM": "LightGBM"}
+# Rango de supuestos de costo para la sensibilidad (el valor central es el de config).
+COST_GRID = {"order_cost": (2.5, 5.0, 10.0), "holding_rate_annual": (0.15, 0.25, 0.35)}
 # Barrido del colchón para trazar la curva servicio-inventario. Va desde colchón negativo
 # (niveles < 0.5) hasta factores muy altos, para que la curva cubra cualquier fill rate
 # objetivo: con lotes de varios días, un pronóstico que sobreestima supera 95% sin colchón.
@@ -413,7 +415,7 @@ def _grouped(by_sku: pd.DataFrame, abc: pd.Series, target: float) -> list[dict]:
 
 def run_grid(
     inputs: dict, lead_times, service_levels, keep_sku=None, ss_methods=tuple(SS_METHODS),
-    clip_ss: bool = True,
+    clip_ss: bool = True, costs: CostParams | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Corre política × método de safety stock × lead time × nivel de servicio.
 
@@ -427,7 +429,7 @@ def run_grid(
                 for sl in service_levels:
                     by_sku = run_policy(
                         basis, inputs["demand"], inputs["price"], inputs["ids"], lt, sl,
-                        ss_method=method, clip_ss=clip_ss,
+                        costs=costs, ss_method=method, clip_ss=clip_ss,
                     )
                     key = {"policy": policy, "ss_method": method, "lead_time": lt, "service_level": sl}
                     agg_rows += [{**key, **r} for r in _grouped(by_sku, inputs["abc"]["abc"], sl)]
@@ -455,6 +457,38 @@ def inventory_at_fill_rate(frontier: pd.DataFrame, target: float) -> pd.DataFram
                 "avg_inv_value": float(np.interp(target, fr, inv)) if ok else np.nan,
             }
         )
+    return pd.DataFrame(rows)
+
+
+def cost_sensitivity(
+    inputs: dict,
+    lead_time: int = config.DEFAULT_LEAD_TIME,
+    target: float = config.DEFAULT_SERVICE_LEVEL,
+    order_costs=COST_GRID["order_cost"],
+    holding_rates=COST_GRID["holding_rate_annual"],
+) -> pd.DataFrame:
+    """¿Depende la conclusión de los supuestos de costo del EOQ?
+
+    Para cada combinación recalcula la curva servicio-inventario y compara el inventario
+    que necesitan la política clásica y la de LightGBM para alcanzar `target` de fill rate.
+    """
+    classic, _, lgbm = POLICIES
+    rows = []
+    for order_cost in order_costs:
+        for rate in holding_rates:
+            costs = CostParams(order_cost=order_cost, holding_rate_annual=rate)
+            frontier, _ = run_grid(
+                inputs, [lead_time], FRONTIER_LEVELS, ss_methods=("sqrt",), clip_ss=False, costs=costs
+            )
+            need = inventory_at_fill_rate(frontier[frontier["group"] == "Total"], target)
+            need = need.set_index("policy")["avg_inv_value"]
+            rows.append(
+                {
+                    "order_cost": order_cost, "holding_rate_annual": rate,
+                    "inv_classic": need[classic], "inv_lgbm": need[lgbm],
+                    "reduction": need[lgbm] / need[classic] - 1,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -517,6 +551,9 @@ def main() -> None:
     frontier, _ = run_grid(inputs, config.LEAD_TIMES, FRONTIER_LEVELS, clip_ss=False)
     frontier.to_parquet(config.SIM_FRONTIER, index=False)
 
+    sens = cost_sensitivity(inputs)
+    sens.to_parquet(config.SIM_COSTS, index=False)
+
     table = recommendation_table()
     table.to_parquet(config.POLICY_TABLE, index=False)
 
@@ -537,6 +574,10 @@ def main() -> None:
     )
     print(f"\nInventario promedio (USD a costo) para ALCANZAR {default[1]:.0%} de fill rate:")
     print(piv.round(0).to_string())
+
+    print("\nInventario de LightGBM vs. política clásica según los supuestos de costo del EOQ:")
+    print(sens.pivot(index="holding_rate_annual", columns="order_cost", values="reduction")
+          .round(3).to_string())
 
 
 if __name__ == "__main__":
