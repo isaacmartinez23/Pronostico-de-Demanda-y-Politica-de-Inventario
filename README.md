@@ -177,4 +177,4 @@ Plotly · uv · ruff · pytest · GitHub Actions
 
 ---
 
-Isaac Martínez · [isaacmartinez.site](https://isaacmartinez.site)
+Isaac Martínez · [isaacmartinez.space](https://isaacmartinez.space)
