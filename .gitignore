@@ -1,0 +1,21 @@
+# Datos: el M5 original y los intermedios no se suben a git
+data/raw/*
+data/interim/*
+data/processed/*
+!data/**/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Entorno / SO
+.env
+.DS_Store
+Thumbs.db
+.claude/
+.streamlit/secrets.toml
