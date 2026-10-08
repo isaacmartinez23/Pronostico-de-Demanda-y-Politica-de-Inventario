@@ -1,6 +1,5 @@
 # Pronóstico de demanda y política de inventario
 
-[![CI](https://github.com/isaacmartinez23/demand-forecasting-inventory/actions/workflows/ci.yml/badge.svg)](https://github.com/isaacmartinez23/demand-forecasting-inventory/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 
 > **Pregunta de negocio:** ¿cuánto vamos a vender de cada producto las próximas 4 semanas y
