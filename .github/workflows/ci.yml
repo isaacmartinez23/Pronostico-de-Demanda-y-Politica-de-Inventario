@@ -13,9 +13,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # M5 no se puede descargar sin credenciales: el pipeline corre sobre un mini-M5 sintético.
-      DFI_DATA_DIR: ${{ runner.temp }}/dfi-data
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +29,10 @@ jobs:
       - name: Pruebas unitarias
         run: make test
 
+      # M5 no se puede descargar sin credenciales: el pipeline corre sobre un mini-M5 sintético.
+      # (El contexto `runner` no existe en `env` a nivel de job; por eso se fija aquí.)
       - name: Pipeline completo sobre datos sintéticos
         run: |
+          export DFI_DATA_DIR="$RUNNER_TEMP/dfi-data"
           make synthetic
           make all

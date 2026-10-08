@@ -1,5 +1,6 @@
 # Pronóstico de demanda y política de inventario
 
+[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pronostico-de-demanda-y-politica-de-inventario-3daasetcydte8hf.streamlit.app/)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 
 > **Pregunta de negocio:** ¿cuánto vamos a vender de cada producto las próximas 4 semanas y
@@ -55,11 +56,15 @@ Detalle en los notebooks:
 
 ## Demo
 
+**[Abrir la app en vivo](https://pronostico-de-demanda-y-politica-de-inventario-3daasetcydte8hf.streamlit.app/)**
+
 App de Streamlit: selector de SKU, pronóstico de 4 semanas con intervalo, safety stock,
 punto de reorden y pedido sugerido, recalculados en vivo al cambiar lead time, nivel de
 servicio e inventario disponible.
 
 ![App: vista por SKU](reports/figures/app_sku.jpg)
+
+Para correrla en local:
 
 ```bash
 make app
