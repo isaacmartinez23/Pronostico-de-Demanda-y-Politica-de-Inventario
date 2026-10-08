@@ -44,6 +44,8 @@ SERVICE_LEVELS = (0.90, 0.95, 0.99)
 LEAD_TIMES = (3, 7, 14)
 DEFAULT_SERVICE_LEVEL = 0.95
 DEFAULT_LEAD_TIME = 7
+# Método de safety stock de la tabla de recomendación (ver policy.SS_METHODS).
+DEFAULT_SS_METHOD = "sqrt"
 
 # Supuestos de costos (M5 no los trae): se usan solo para el EOQ.
 UNIT_COST_RATIO = 0.70  # costo unitario = 70% del precio de venta

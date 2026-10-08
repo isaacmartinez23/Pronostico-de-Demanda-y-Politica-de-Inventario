@@ -193,6 +193,102 @@ def test_run_policy_reaches_full_service_with_perfect_forecast():
     np.testing.assert_allclose(out["sales"] + out["lost"], out["demand"])
 
 
+# ------------------------------------------------------------- variantes de safety stock
+
+
+def test_rolling_sums_and_lead_time_errors():
+    x = np.arange(1, 7, dtype=float).reshape(6, 1)
+    np.testing.assert_array_equal(pol.rolling_sums(x, 3)[:, 0], [6, 9, 12, 15])
+    np.testing.assert_array_equal(pol.rolling_sums(x, 1), x)
+
+    resid = np.stack([x, 10 * x])  # 2 ventanas: las sumas no cruzan de una ventana a otra
+    out = pol.lead_time_errors(resid, 3)
+    np.testing.assert_array_equal(out[:, 0], [6, 9, 12, 15, 60, 90, 120, 150])
+
+
+def test_empirical_quantile_is_conservative_and_per_column():
+    rng = np.random.default_rng(0)
+    samples = np.column_stack([rng.normal(0, 1, 200), rng.normal(0, 5, 200)])
+    q = pol.empirical_quantile(samples, 0.95)
+    assert q.shape == (2,) and q[1] > 3 * q[0]
+    assert (q >= np.quantile(samples, 0.95, axis=0)).all()
+    np.testing.assert_array_equal(pol.empirical_quantile(samples[:5], 0.99), samples[:5].max(0))
+
+
+def test_sigma_lead_matches_sqrt_rule_only_for_independent_errors():
+    """Con errores independientes σ(L) ≈ σ·√L; con errores correlacionados la regla se queda corta."""
+    rng = np.random.default_rng(0)
+    n_win, h, n, lead = 6, 28, 400, 7
+    f = np.full((n_win, h, n), 10.0)
+
+    iid = pol.forecast_basis(f + rng.normal(0, 2, f.shape), f, lead)
+    ratio = iid.sigma_lead[0] / (iid.sigma[0] * np.sqrt(lead))
+    assert np.median(ratio) == pytest.approx(1.0, abs=0.1)
+
+    # Error persistente: el mismo desvío durante toda la ventana (como un sesgo de nivel).
+    level = rng.normal(0, 2, (n_win, 1, n))
+    corr = pol.forecast_basis(f + level + rng.normal(0, 0.5, f.shape), f, lead)
+    ratio = corr.sigma_lead[0] / (corr.sigma[0] * np.sqrt(lead))
+    assert np.median(ratio) > 1.5
+
+
+def test_safety_stock_methods():
+    y, f = _cubes(seed=7)
+    basis = pol.forecast_basis(y, f, lead_time=7, n_eval=3)
+    assert len(basis.err_lead) == 3 and basis.window.tolist() == [0] * 28 + [1] * 28 + [2] * 29
+    # Muestras disponibles: (ventanas previas) × (h - L + 1) → crecen con cada ventana.
+    assert [e.shape[0] for e in basis.err_lead] == [3 * 22, 4 * 22, 5 * 22]
+
+    ss = {m: pol.safety_stock_for(basis, 7, 0.95, m) for m in pol.SS_METHODS}
+    assert all(v.shape == basis.mu_lead.shape for v in ss.values())
+    np.testing.assert_allclose(ss["sqrt"], pol.safety_stock(basis.sigma, 7, 0.95))
+    np.testing.assert_allclose(ss["acumulado"], pol.z_score(0.95) * basis.sigma_lead)
+    for m in pol.SS_METHODS:
+        assert (pol.safety_stock_for(basis, 7, 0.99, m) >= ss[m]).all()
+    with pytest.raises(ValueError):
+        pol.safety_stock_for(basis, 7, 0.95, "otro")
+
+
+def test_empirical_safety_stock_corrects_forecast_bias():
+    """Si el pronóstico sobreestima siempre, el cuantil empírico baja el punto de reorden."""
+    y, _ = _cubes(seed=8)
+    basis = pol.forecast_basis(y, y + 5.0, lead_time=7, n_eval=3)
+    assert (pol.safety_stock_for(basis, 7, 0.95, "empirico") < 0).all()
+    assert (pol.safety_stock_for(basis, 7, 0.95, "acumulado") >= 0).all()
+
+    demand = y[-3:].reshape(84, 4)
+    ids = [f"sku{i}" for i in range(4)]
+    args = (basis, demand, np.full(4, 2.0), ids, 7, 0.95)
+    emp = pol.run_policy(*args, ss_method="empirico")
+    sqrt = pol.run_policy(*args, ss_method="sqrt")
+    assert (emp["rop"] < sqrt["rop"]).all() and (emp["rop"] >= 0).all()
+    assert (emp["avg_on_hand"] < sqrt["avg_on_hand"]).all()
+
+
+def test_classic_basis_lead_time_errors_are_centered_demand():
+    rng = np.random.default_rng(4)
+    hist = rng.poisson(4.0, size=(pol.CLASSIC_WINDOW + 3 * 28, 2)).astype(float)
+    basis = pol.classic_basis(hist, lead_time=7, n_eval=3, h=28)
+    past = hist[: pol.CLASSIC_WINDOW]
+    expected = pol.rolling_sums(past, 7) - 7 * past.mean(0)
+    np.testing.assert_allclose(basis.err_lead[0], expected)
+    assert basis.err_lead[0].shape[0] == pol.CLASSIC_WINDOW - 7 + 1
+
+
+def test_cycle_service_counts_replenishment_cycles_with_stockouts():
+    demand, rop, lot = _random_case(seed=3)
+    sim = pol.simulate_policy(demand, rop, lot, lead_time=5)
+    assert (sim.stockout_cycles <= sim.cycles).all()
+    assert (sim.cycles <= (sim.orders > 0).sum(0)).all()  # solo cuentan los pedidos ya recibidos
+
+    safe = pol.simulate_policy(demand, rop * 20, lot, lead_time=5)
+    assert safe.lost.sum() == 0 and safe.stockout_cycles.sum() == 0
+
+    # Un SKU sin inventario ni reposición suficiente quiebra en todos sus ciclos.
+    tight = pol.simulate_policy(np.full((60, 1), 10.0), np.zeros((60, 1)), np.ones((60, 1)), 3)
+    assert tight.cycles[0] > 0 and tight.stockout_cycles[0] == tight.cycles[0]
+
+
 # ---------------------------------------------------------------------------- agregados
 
 
@@ -202,9 +298,11 @@ def test_aggregate_weights_fill_rate_by_value():
             "demand": [100.0, 100.0], "sales": [100.0, 50.0], "price": [9.0, 1.0],
             "fill_rate": [1.0, 0.5], "stockout_days": [0.0, 0.2], "avg_on_hand": [10.0, 5.0],
             "avg_inv_value": [63.0, 3.5], "daily_demand": [2.0, 2.0], "n_orders": [4, 2],
+            "cycles": [4.0, 2.0], "stockout_cycles": [0.0, 1.0],
         }
     )
     agg = pol.aggregate(by_sku, target=0.95)
+    assert agg["cycle_service"] == pytest.approx(5 / 6)
     assert agg["fill_rate"] == pytest.approx(950 / 1000)
     assert agg["fill_rate_units"] == pytest.approx(0.75)
     assert agg["skus_meeting_target"] == pytest.approx(0.5)
@@ -220,3 +318,18 @@ def test_inventory_at_fill_rate_interpolates_and_flags_unreachable_targets():
     )
     assert pol.inventory_at_fill_rate(frontier, 0.94)["avg_inv_value"][0] == pytest.approx(300.0)
     assert np.isnan(pol.inventory_at_fill_rate(frontier, 0.995)["avg_inv_value"][0])
+
+
+def test_unclipped_safety_stock_extends_the_frontier_below_zero_buffer():
+    y, f = _cubes(seed=9)
+    basis = pol.forecast_basis(y, f, lead_time=7, n_eval=3)
+    for method in ("sqrt", "acumulado"):
+        assert (pol.safety_stock_for(basis, 7, 0.10, method) == 0).all()
+        assert (pol.safety_stock_for(basis, 7, 0.10, method, clip=False) < 0).all()
+
+    demand = y[-3:].reshape(84, 4)
+    args = (basis, demand, np.full(4, 2.0), [f"sku{i}" for i in range(4)], 7)
+    low = pol.run_policy(*args, 0.01, clip_ss=False)
+    mid = pol.run_policy(*args, 0.50, clip_ss=False)
+    assert (low["rop"] <= mid["rop"]).all() and (low["rop"] >= 0).all()
+    assert low["avg_on_hand"].sum() < mid["avg_on_hand"].sum()
