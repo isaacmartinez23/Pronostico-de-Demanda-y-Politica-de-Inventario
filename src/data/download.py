@@ -39,7 +39,7 @@ def download() -> None:
         raise SystemExit(
             "No se pudo descargar M5 automáticamente.\n"
             f"  1) Acepta las reglas en https://www.kaggle.com/competitions/{COMPETITION}\n"
-            "  2) Coloca tu token en ~/.kaggle/kaggle.json, o descarga el zip manualmente\n"
+            "  2) Autentica la CLI con `kaggle auth login`, o descarga el zip manualmente\n"
             f"  3) Deja {', '.join(config.RAW_FILES)} en {config.RAW_DIR}"
         ) from exc
 
