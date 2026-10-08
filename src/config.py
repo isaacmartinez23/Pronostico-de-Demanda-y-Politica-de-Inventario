@@ -65,10 +65,12 @@ METRICS_WRMSSE = PROCESSED_DIR / "metrics_wrmsse.parquet"
 METRICS_SKU = PROCESSED_DIR / "metrics_sku.parquet"
 METRICS_SEGMENT = PROCESSED_DIR / "metrics_segment.parquet"
 METRICS_COVERAGE = PROCESSED_DIR / "metrics_coverage.parquet"
+ABLATION = PROCESSED_DIR / "ablation.parquet"
 POLICY_TABLE = PROCESSED_DIR / "policy_table.parquet"
 SIM_SCENARIOS = PROCESSED_DIR / "sim_scenarios.parquet"
 SIM_FRONTIER = PROCESSED_DIR / "sim_frontier.parquet"
 SIM_BY_SKU = PROCESSED_DIR / "sim_by_sku.parquet"
+SIM_COSTS = PROCESSED_DIR / "sim_costs.parquet"
 
 RAW_FILES = ("calendar.csv", "sales_train_evaluation.csv", "sell_prices.csv")
 

@@ -17,7 +17,9 @@ from mlforecast.lag_transforms import RollingMean, RollingStd
 
 LAGS = [7, 14, 28]
 DATE_FEATURES = ["dayofweek", "day", "month"]
-STATIC_FEATURES = ["item_id", "dept_id"]
+# `item_id` (1,429 niveles) quedó fuera: en las ventanas de calibración el modelo generaliza
+# mejor sin él (ver src/models/ablation.py). El nivel de cada SKU ya lo dan sus medias móviles.
+STATIC_FEATURES = ["dept_id"]
 DYNAMIC_FEATURES = [
     "snap",
     "is_event",
@@ -29,7 +31,7 @@ DYNAMIC_FEATURES = [
     "price_rel_dept",
     "price_change_7",
 ]
-CATEGORICAL = ["item_id", "dept_id", "event_name", "event_type"]
+CATEGORICAL = ["dept_id", "event_name", "event_type"]
 
 MAX_DAYS_TO_EVENT = 7
 PRICE_WINDOW = 91
