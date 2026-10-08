@@ -1,5 +1,6 @@
 # Pronóstico de demanda y política de inventario
 
+[![CI](https://github.com/isaacmartinez23/Pronostico-de-Demanda-y-Politica-de-Inventario/actions/workflows/ci.yml/badge.svg)](https://github.com/isaacmartinez23/Pronostico-de-Demanda-y-Politica-de-Inventario/actions/workflows/ci.yml)
 [![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pronostico-de-demanda-y-politica-de-inventario-3daasetcydte8hf.streamlit.app/)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 
