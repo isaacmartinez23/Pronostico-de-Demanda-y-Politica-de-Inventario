@@ -38,10 +38,10 @@ def cheap_models() -> list:
 
 
 def heavy_models() -> list:
-    return [
-        AutoETS(season_length=config.SEASON_LENGTH),
-        AutoARIMA(season_length=config.SEASON_LENGTH),
-    ]
+    models = [AutoETS(season_length=config.SEASON_LENGTH)]
+    if not config.SKIP_ARIMA:
+        models.append(AutoARIMA(season_length=config.SEASON_LENGTH))
+    return models
 
 
 def run_cv(
@@ -86,7 +86,8 @@ def main() -> None:
     heavy = run_cv(
         sales, heavy_models(), n_windows=config.N_WINDOWS, input_size=config.STATS_INPUT_SIZE
     )
-    print(f"AutoETS + AutoARIMA ({config.N_WINDOWS} ventanas): {time.time() - t0:.0f}s")
+    names = " + ".join(m.alias for m in heavy_models())
+    print(f"{names} ({config.N_WINDOWS} ventanas): {time.time() - t0:.0f}s")
 
     cv = cheap.merge(heavy.drop(columns="y"), on=["unique_id", "ds", "cutoff"], how="left")
     cv.to_parquet(config.CV_BASELINES, index=False)

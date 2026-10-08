@@ -4,7 +4,32 @@ Plan anclado al estado real del repo al 2026-10-07. El brief original describe e
 desde cero; aquí la lógica de `src/` ya está escrita, así que el trabajo que falta es
 **ejecutar, verificar, endurecer la metodología y empaquetar**.
 
-## 1. Dónde estamos
+## 0. Estado al cierre de la primera iteración
+
+Hecho todo lo que no requiere publicar nada fuera de esta máquina. Resultados en el periodo
+de evaluación (3 ventanas de 28 días, 2016-02-29 → 2016-05-22):
+
+| Criterio | Resultado |
+| --- | --- |
+| WRMSSE de LightGBM < SeasonalNaive en las 3 ventanas | Cumplido: 0.528 vs 0.785 (−33%); vs AutoETS 0.608 (−13%) |
+| Fill rate ≥ 95% en clase A (L=7, objetivo 95%) | Cumplido: 96.8%; 87% de los SKUs A lo cumple |
+| Inventario a igual fill rate (95%) vs. política clásica | −14% total, −11% clase A |
+| Cobertura de intervalos a ±5 puntos de la nominal | **No cumplido:** 73.6% y 88.7% (≈6 puntos por debajo) |
+| `make all` regenera todo; CI con datos sintéticos | Cumplido localmente; CI aún sin correr en GitHub |
+
+Pendiente (requiere tu confirmación porque publica contenido): crear el repo en GitHub,
+desplegar la app en Streamlit Community Cloud, grabar el GIF de la demo, tarjeta en el sitio
+y post en LinkedIn.
+
+Decisiones abiertas:
+- `item_id` quedó fuera del modelo por la ablación en calibración; en evaluación el efecto
+  fue neutro en WRMSSE y redujo el ahorro de inventario de −16% a −14%. Ver notebook 03.
+- Método de safety stock por defecto de la tabla de recomendación: `sqrt` (fórmula de libro).
+  `acumulado` calibra mejor el servicio de ciclo con la misma eficiencia.
+- Los intervalos quedan cortos; mejorarlos (más ventanas de calibración, márgenes por
+  horizonte) es el siguiente paso técnico natural.
+
+## 1. Dónde estábamos al empezar (2026-10-07)
 
 Subconjunto ya procesado: **FOODS en CA_1 — 1,429 series**, 2011-01-29 → 2016-05-22,
 sin huecos de fecha, 46.8% de días en cero. Matriz ABC/XYZ: A=603, B=458, C=368 ·
@@ -55,12 +80,13 @@ X=401, Y=715, Z=313. Patrón de demanda: **925 intermitentes, 254 irregulares**,
 
 ### Fase 0 — Cimientos (½ día)
 
-- [ ] `git init`, primer commit, repo público `demand-forecasting-inventory` en GitHub
-- [ ] `Makefile` con `data | classify | baselines | train | policy | report | app | test | all`.
+- [x] `git init` y commits locales
+- [ ] Repo público `demand-forecasting-inventory` en GitHub (pendiente de tu visto bueno)
+- [x] `Makefile` con `data | classify | baselines | train | policy | report | app | test | all`.
       Recetas de una línea (`uv run python -m src...`) para que funcionen igual en
       `cmd`/`sh` de Windows y en Linux
-- [ ] `.pre-commit-config.yaml` (ruff lint + format, fin de línea, tamaño de archivos)
-- [ ] Rutas de datos sobreescribibles por variable de entorno (p. ej. `DFI_DATA_DIR`) en
+- [x] `.pre-commit-config.yaml` (ruff lint + format, fin de línea, tamaño de archivos)
+- [x] Rutas de datos sobreescribibles por variable de entorno (p. ej. `DFI_DATA_DIR`) en
       `src/config.py` — lo necesita el smoke test de CI
 
 **Salida:** `make data classify` reproduce los tres parquet actuales desde `data/raw/`.
@@ -68,50 +94,50 @@ X=401, Y=715, Z=313. Patrón de demanda: **925 intermitentes, 254 irregulares**,
 ### Fase 1 — Datos y EDA (1 día)
 
 - [x] Subconjunto, formato largo, calendario + precios, ABC/XYZ
-- [ ] `notebooks/01_eda` (jupytext `.py` pareado, como ya prevé `pyproject.toml`):
+- [x] `notebooks/01_eda` (jupytext `.py` pareado, como ya prevé `pyproject.toml`):
       estacionalidad semanal/anual, efecto SNAP y eventos (incluido el efecto *previo* al
       feriado), ceros por departamento, mapa ADI–CV², curva de Pareto
-- [ ] Guardar 4–5 figuras en `reports/figures/` (se reutilizan en README y resumen)
+- [x] Guardar 4–5 figuras en `reports/figures/` (se reutilizan en README y resumen)
 
 **Salida:** cada feature de `build_features.py` queda justificada por una figura del EDA.
 
 ### Fase 2 — Baselines y evaluación (1½ días)
 
-- [ ] Ejecutar `src.models.baselines` y **medir el tiempo** de AutoARIMA (1,429 series × 3
+- [x] Ejecutar `src.models.baselines` y **medir el tiempo** de AutoARIMA (1,429 series × 3
       ventanas). Si pasa de ~30 min: bajar `STATS_INPUT_SIZE` a 365 o limitar AutoARIMA a
       clases A+B, y decirlo en el README
-- [ ] Crear `src/models/backtest.py`: une `cv_baselines` + `cv_lgbm`, calcula WRMSSE por
+- [x] Crear `src/models/backtest.py`: une `cv_baselines` + `cv_lgbm`, calcula WRMSSE por
       ventana y nivel, y MAE / WAPE / sesgo / RMSSE **por segmento ABC-XYZ y por patrón**;
       escribe `metrics_*.parquet`
-- [ ] `notebooks/02_baselines`: tabla comparativa y mejor baseline por segmento
+- [x] `notebooks/02_baselines`: tabla comparativa y mejor baseline por segmento
 
 **Salida:** una tabla modelo × segmento reproducible con `make baselines`.
 
 ### Fase 3 — Modelo de ML (2 días)
 
-- [ ] Ejecutar `src.models.ml_model` (6 ventanas con reentrenamiento + pronóstico final)
-- [ ] Comparar contra baselines: dónde gana y dónde pierde, sesgo por segmento, error por
+- [x] Ejecutar `src.models.ml_model` (6 ventanas con reentrenamiento + pronóstico final)
+- [x] Comparar contra baselines: dónde gana y dónde pierde, sesgo por segmento, error por
       paso del horizonte (¿se degrada la recursión hacia el día 28?)
-- [ ] Ablaciones acotadas, decididas en ventanas de calibración: sin `item_id` categórico
+- [x] Ablaciones acotadas, decididas en ventanas de calibración: sin `item_id` categórico
       (1,429 niveles, riesgo de sobreajuste), sin features de precio, Tweedie vs Poisson
-- [ ] **Intervalos fuera de muestra:** hoy los cuantiles se calibran con las 6 ventanas
+- [x] **Intervalos fuera de muestra:** hoy los cuantiles se calibran con las 6 ventanas
       ([ml_model.py:103](src/models/ml_model.py:103)) y `intervals.coverage` no se usa.
       Calibrar con las 3 primeras, medir cobertura 80/95 en las 3 de evaluación y
       reportarla por segmento; para el pronóstico final sí se usan las 6
-- [ ] `notebooks/03_lightgbm`: importancia de variables, ejemplos buenos y malos
+- [x] `notebooks/03_lightgbm`: importancia de variables, ejemplos buenos y malos
 
 **Salida:** WRMSSE de LightGBM < SeasonalNaive en las 3 ventanas; cobertura empírica a
 ±5 puntos de la nominal. Si el modelo no gana en algún segmento, se reporta tal cual.
 
 ### Fase 4 — De pronóstico a decisión (2 días)
 
-- [ ] Ejecutar `src.inventory.policy` tal como está: primeros números de la simulación
-- [ ] Agregar las variantes de safety stock de las decisiones 4 y 5 (σ del error acumulado
+- [x] Ejecutar `src.inventory.policy` tal como está: primeros números de la simulación
+- [x] Agregar las variantes de safety stock de las decisiones 4 y 5 (σ del error acumulado
       en L días; cuantil empírico) y compararlas en la frontera servicio–inventario
-- [ ] Reportar fill rate **y** nivel de servicio de ciclo; resultados por clase ABC
-- [ ] Escenarios L ∈ {3, 7, 14} × servicio ∈ {90, 95, 99%} (grid ya implementado)
-- [ ] Sensibilidad a los supuestos de costo del EOQ
-- [ ] `notebooks/04_inventory_policy`: frontera, escenarios, SKUs que no cumplen y por qué
+- [x] Reportar fill rate **y** nivel de servicio de ciclo; resultados por clase ABC
+- [x] Escenarios L ∈ {3, 7, 14} × servicio ∈ {90, 95, 99%} (grid ya implementado)
+- [x] Sensibilidad a los supuestos de costo del EOQ
+- [x] `notebooks/04_inventory_policy`: frontera, escenarios, SKUs que no cumplen y por qué
 
 **Salida:** la frase titular con su número real — inventario promedio que necesita cada
 política para alcanzar 95% de fill rate en clase A — y fill rate ≥ 95% en clase A.
@@ -120,34 +146,34 @@ política para alcanzar 95% de fill rate en clase A — y fill rate ≥ 95% en c
 
 **Tests y CI** (se pueden adelantar en paralelo desde la Fase 2)
 
-- [ ] Generador de un mini-M5 sintético en formato crudo (≈30 SKUs × 500 días): CI no puede
+- [x] Generador de un mini-M5 sintético en formato crudo (≈30 SKUs × 500 días): CI no puede
       bajar M5 (licencia y credenciales)
-- [ ] `test_policy.py`: z(0.95)=1.645, SS monótono en L y servicio, EOQ contra valor
+- [x] `test_policy.py`: z(0.95)=1.645, SS monótono en L y servicio, EOQ contra valor
       conocido, y propiedades de la simulación (ventas + perdidas = demanda, inventario
       nunca negativo, el pedido llega exactamente a los L días)
-- [ ] `test_features.py`: **sin fuga** (alterar `y` futuro no cambia features pasadas),
+- [x] `test_features.py`: **sin fuga** (alterar `y` futuro no cambia features pasadas),
       `days_to_event`, precio relativo
-- [ ] `test_metrics.py`, `test_abc_xyz.py`, `test_intervals.py` (pronóstico perfecto → 0,
+- [x] `test_metrics.py`, `test_abc_xyz.py`, `test_intervals.py` (pronóstico perfecto → 0,
       cortes 80/95, cobertura en datos sintéticos)
-- [ ] `.github/workflows/ci.yml`: uv + ruff + pytest + `make all` sobre el mini-M5
+- [x] `.github/workflows/ci.yml`: uv + ruff + pytest + `make all` sobre el mini-M5
 
 **App Streamlit**
 
-- [ ] `make app` exporta a `app/data/` solo lo necesario (historia reciente, pronóstico con
+- [x] `make app` exporta a `app/data/` solo lo necesario (historia reciente, pronóstico con
       intervalos, tabla de política, escenarios, frontera, métricas); objetivo < 25 MB
-- [ ] `app/streamlit_app.py`: selector de SKU con filtro ABC/XYZ, pronóstico de 28 días con
+- [x] `app/streamlit_app.py`: selector de SKU con filtro ABC/XYZ, pronóstico de 28 días con
       intervalo, tarjetas SS / ROP / cantidad a pedir, sliders de lead time, nivel de
       servicio e inventario actual (recalcula en vivo con las fórmulas de `policy.py`), y
       una pestaña de resultados globales
-- [ ] `app/requirements.txt` mínimo (streamlit, pandas, pyarrow, plotly, scipy): la app
+- [x] `app/requirements.txt` mínimo (streamlit, pandas, pyarrow, plotly, scipy): la app
       **no entrena nada**, así Streamlit Cloud no instala statsforecast ni lightgbm
 - [ ] Desplegar en Streamlit Community Cloud con Python 3.12
 
 **Documentación y difusión**
 
-- [ ] README: problema, resultados clave, diagrama de arquitectura, GIF de la demo, cómo
+- [x] README: problema, resultados clave, diagrama de arquitectura, capturas de la demo, cómo
       reproducir (incluida la descarga de M5 y `kaggle auth login`), limitaciones
-- [ ] `reports/executive_summary.md` de 1 página, escrito para un gerente de supply chain
+- [x] `reports/executive_summary.md` de 1 página, escrito para un gerente de supply chain
 - [ ] Tarjeta en isaacmartinez.site (Análisis de Datos + Inteligencia Artificial) y post
       en LinkedIn
 
