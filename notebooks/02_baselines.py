@@ -94,7 +94,7 @@ levels.round(3)
 # - **MediaMovil28** hace lo contrario: es un buen estimador del *nivel* de cada SKU, pero es
 #   plano y no ve la semana, así que falla en total y departamento.
 # - **AutoETS** combina ambas cosas: nivel suavizado + estacionalidad semanal.
-# - **AutoARIMA** queda por detrás de ETS y es, con diferencia, el más caro de calcular.
+# - **AutoARIMA** queda por detrás de ETS en los niveles agregados, donde pesa el patrón semanal.
 
 # %% [markdown]
 # ## 2. Otra métrica, otra historia: WAPE y sesgo
@@ -170,4 +170,4 @@ by_pattern[order].round(3)
 # | AutoETS es el mejor baseline en WRMSSE | Es la referencia real para el modelo de ML |
 # | En WAPE a nivel SKU, la media móvil empata con ETS/ARIMA | En intermitentes, lo simple es competitivo |
 # | El error depende más del segmento que del modelo | Reportar siempre por ABC/XYZ, no solo el total |
-# | AutoARIMA: el más lento y no el mejor | No se usa para la política de inventario |
+# | AutoARIMA no mejora a AutoETS | No se usa para la política de inventario |

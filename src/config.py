@@ -12,9 +12,10 @@ DATA_DIR = Path(os.getenv("DFI_DATA_DIR", ROOT / "data"))
 RAW_DIR = DATA_DIR / "raw"
 INTERIM_DIR = DATA_DIR / "interim"
 PROCESSED_DIR = DATA_DIR / "processed"
+# La app lee de app/data; una corrida con DFI_DATA_DIR (datos sintéticos) no debe pisarlos.
+APP_DATA_DIR = DATA_DIR / "app" if "DFI_DATA_DIR" in os.environ else ROOT / "app" / "data"
 REPORTS_DIR = ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
-APP_DATA_DIR = ROOT / "app" / "data"
 
 # Subconjunto de M5 (configurable por variable de entorno para probar otra tienda/categoría).
 STORE_ID = os.getenv("M5_STORE", "CA_1")
@@ -32,6 +33,9 @@ N_CALIB_WINDOWS = 3
 
 # Historia que ven los modelos estadísticos en cada ajuste (acota el costo de AutoARIMA/AutoETS).
 STATS_INPUT_SIZE = 2 * 365
+# AutoETS + AutoARIMA son el paso más lento del pipeline (~27 min en 32 núcleos). AutoARIMA no
+# alimenta la política de inventario: DFI_SKIP_ARIMA=1 lo omite para corridas más rápidas.
+SKIP_ARIMA = os.getenv("DFI_SKIP_ARIMA", "0") == "1"
 
 # SKUs con menos historia quedan fuera: no alcanzan para las ventanas de backtesting
 # (son un problema distinto: pronóstico de producto nuevo).
