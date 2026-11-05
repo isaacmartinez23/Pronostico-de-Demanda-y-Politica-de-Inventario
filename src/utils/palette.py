@@ -1,4 +1,4 @@
-"""Paleta común de las figuras (matplotlib) y de la app (plotly). Solo constantes."""
+"""Paleta común de las figuras (matplotlib). Solo constantes; el dashboard usa los mismos tonos en CSS."""
 
 # Paleta categórica en orden fijo (el orden es lo que la hace segura para daltonismo).
 BLUE, ORANGE, AQUA, YELLOW, MAGENTA, GREEN, VIOLET, RED = (

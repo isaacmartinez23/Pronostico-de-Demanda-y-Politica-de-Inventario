@@ -12,8 +12,11 @@ DATA_DIR = Path(os.getenv("DFI_DATA_DIR", ROOT / "data"))
 RAW_DIR = DATA_DIR / "raw"
 INTERIM_DIR = DATA_DIR / "interim"
 PROCESSED_DIR = DATA_DIR / "processed"
-# La app lee de app/data; una corrida con DFI_DATA_DIR (datos sintéticos) no debe pisarlos.
-APP_DATA_DIR = DATA_DIR / "app" if "DFI_DATA_DIR" in os.environ else ROOT / "app" / "data"
+# Datos y página del dashboard. reports/dashboard/datos.json se versiona (solo resultados derivados);
+# una corrida con DFI_DATA_DIR (datos sintéticos) escribe aparte para no pisarlo.
+DASHBOARD_DIR = DATA_DIR / "dashboard" if "DFI_DATA_DIR" in os.environ else ROOT / "reports" / "dashboard"
+DASHBOARD_DATA = DASHBOARD_DIR / "datos.json"
+DASHBOARD_HTML = DASHBOARD_DIR / "index.html"
 REPORTS_DIR = ROOT / "reports"
 FIGURES_DIR = REPORTS_DIR / "figures"
 
@@ -80,5 +83,5 @@ RAW_FILES = ("calendar.csv", "sales_train_evaluation.csv", "sell_prices.csv")
 
 
 def ensure_dirs() -> None:
-    for d in (RAW_DIR, INTERIM_DIR, PROCESSED_DIR, FIGURES_DIR, APP_DATA_DIR):
+    for d in (RAW_DIR, INTERIM_DIR, PROCESSED_DIR, FIGURES_DIR, DASHBOARD_DIR):
         d.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,7 @@
 # Pronóstico de demanda y política de inventario
 
 [![CI](https://github.com/isaacmartinez23/Pronostico-de-Demanda-y-Politica-de-Inventario/actions/workflows/ci.yml/badge.svg)](https://github.com/isaacmartinez23/Pronostico-de-Demanda-y-Politica-de-Inventario/actions/workflows/ci.yml)
-[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pronostico-de-demanda-y-politica-de-inventario-usbv4xjacamdnov.streamlit.app/)
+[![Dashboard](https://img.shields.io/badge/dashboard-en%20vivo-3d3a9e)](https://isaacmartinez.space/Pronostico-de-Demanda-y-Politica-de-Inventario/)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 
 > **Pregunta de negocio:** ¿cuánto vamos a vender de cada producto las próximas 4 semanas y
@@ -55,23 +55,46 @@ Detalle en los notebooks:
 [03 LightGBM](notebooks/03_lightgbm.ipynb) ·
 [04 Política de inventario](notebooks/04_inventory_policy.ipynb)
 
-## Demo
+## Dashboard
 
-**[Abrir la app en vivo](https://pronostico-de-demanda-y-politica-de-inventario-usbv4xjacamdnov.streamlit.app/)**
+**En vivo: <https://isaacmartinez.space/Pronostico-de-Demanda-y-Politica-de-Inventario/>**
 
-App de Streamlit: selector de SKU, pronóstico de 4 semanas con intervalo, safety stock,
-punto de reorden y pedido sugerido, recalculados en vivo al cambiar lead time, nivel de
-servicio e inventario disponible.
+[![Resumen del dashboard](docs/img/dashboard_resumen.png)](https://isaacmartinez.space/Pronostico-de-Demanda-y-Politica-de-Inventario/)
 
-![App: vista por SKU](reports/figures/app_sku.jpg)
+Cinco páginas, cada una abre con la pregunta que responde y una lectura en una frase calculada
+con los filtros vigentes:
 
-Para correrla en local:
+| Página | Qué responde |
+| --- | --- |
+| Resumen | Cuánto inventario hace falta para el 95% de servicio y cuánto ahorra el modelo; curva servicio–inventario |
+| Pronóstico | Error contra los baselines, venta real contra pronóstico por departamento, dónde gana y dónde pierde |
+| Inventario | Inventario por política a igual fill rate, escenarios de lead time y nivel de servicio, servicio nominal contra logrado |
+| Producto | Pronóstico diario con intervalo, safety stock, punto de reorden, pedido sugerido y proyección del inventario |
+| Portafolio | Política de todos los productos, valor del colchón por segmento y descarga en CSV |
+
+Filtros de lead time, nivel de servicio, método de safety stock, clase ABC/XYZ y departamento.
+
+![Vista por producto](docs/img/dashboard_producto.png)
+
+Es un solo HTML sin servidor ni librerías externas, con el mismo diseño que el
+[dashboard de precios de PROFECO](https://isaacmartinez.space/analisis_profeco/) del portafolio.
+`make dashboard` extrae los resultados derivados a `reports/dashboard/datos.json` (versionado)
+y genera `reports/dashboard/index.html`; GitHub Actions lo publica en GitHub Pages con cada
+cambio. Para abrirlo en local:
 
 ```bash
-make app
+python -m src.dashboard.generar
 ```
 
-La app solo lee los parquet de `app/data/` (2 MB, versionados): no entrena ni necesita M5.
+```bash
+python -m http.server 8766 --directory reports/dashboard
+```
+
+**Datos que publica.** Las reglas de M5 permiten usar los datos con fines no comerciales y de
+investigación, pero no redistribuirlos. El dashboard solo incluye resultados derivados:
+pronósticos, márgenes de los intervalos, métricas, resultados de la simulación y la venta
+sumada por departamento. Ninguna venta diaria ni precio de un producto llega a la página, y
+`src/dashboard/datos.py` falla si aparece una columna con ese contenido.
 
 ## Arquitectura
 
@@ -88,8 +111,9 @@ flowchart LR
     C --> G
     F --> H[notebooks y reportes]
     G --> H
-    G --> I[app Streamlit]
+    G --> I[dashboard HTML<br>GitHub Pages]
     E --> I
+    F --> I
 ```
 
 ## Metodología
@@ -131,7 +155,7 @@ make all
 ```
 
 `make all` corre datos → clasificación → baselines → modelo → ablaciones → evaluación →
-política → datos de la app. En una máquina de 32 núcleos tarda ~35 minutos, casi todo en
+política → dashboard. En una máquina de 32 núcleos tarda ~35 minutos, casi todo en
 AutoETS y AutoARIMA; con `DFI_SKIP_ARIMA=1` se omite AutoARIMA, que no alimenta la política.
 
 ```bash
@@ -151,16 +175,17 @@ La tienda y la categoría se eligen con las variables de entorno `M5_STORE` y `M
 
 ```
 ├── src/
-│   ├── data/          # descarga, formato largo, M5 sintético, datos de la app
+│   ├── data/          # descarga, formato largo y M5 sintético
 │   ├── features/      # calendario, eventos y precio relativo
 │   ├── models/        # baselines, LightGBM, intervalos, backtesting, ablaciones
 │   ├── inventory/     # ABC/XYZ, safety stock, ROP, EOQ y simulación
+│   ├── dashboard/     # extracción de datos derivados, plantilla HTML y generador
 │   └── utils/         # métricas (WRMSSE) y estilo de figuras
 ├── notebooks/         # 01–04, fuente .py (jupytext) + .ipynb ejecutado
-├── app/               # Streamlit + parquet livianos
-├── reports/           # figuras y resumen ejecutivo
+├── reports/           # figuras, resumen ejecutivo y datos del dashboard
+├── docs/img/          # capturas del dashboard
 ├── tests/             # política, simulación, métricas, fuga de datos
-└── .github/workflows/ # CI: lint, pruebas y pipeline sobre datos sintéticos
+└── .github/workflows/ # CI (lint, pruebas, pipeline sintético) y despliegue del dashboard
 ```
 
 ## Limitaciones
@@ -177,8 +202,8 @@ La tienda y la categoría se eligen con las variables de entorno `M5_STORE` y `M
 
 ## Stack
 
-Python 3.12 · pandas · DuckDB · statsforecast · mlforecast · LightGBM · SciPy · Streamlit ·
-Plotly · uv · ruff · pytest · GitHub Actions
+Python 3.12 · pandas · DuckDB · statsforecast · mlforecast · LightGBM · SciPy · HTML/SVG ·
+uv · ruff · pytest · GitHub Actions · GitHub Pages
 
 ---
 

@@ -1,0 +1,1799 @@
+<title>Pronóstico de demanda e inventario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Hoja de estilos compartida con el dashboard de PROFECO del mismo portafolio (github.com/isaacmartinez23/analisis_profeco):
+   mismos tokens, componentes y paleta categórica validada, para que ambos proyectos se lean como uno solo. */
+:root {
+  color-scheme: light;
+  --plano: #eef2f0;
+  --superficie: #fbfcfb;
+  --superficie-2: #f2f5f3;
+  --tinta: #101816;
+  --tinta-2: #4a5652;
+  --tenue: #66726e;
+  --linea: #dfe5e2;
+  --eje: #c3cbc7;
+  --borde: rgba(16, 24, 22, 0.1);
+  --acento: #3d3a9e;
+  --acento-suave: #e4e3f5;
+  --sobre-acento: #ffffff;
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --serie-5: #e87ba4;
+  --serie-6: #008300;
+  --serie-7: #4a3aa7;
+  --serie-8: #e34948;
+  --serie-otras: #9aa5a1;
+  --seq-0: #f2f5f3;
+  --seq-1: #e4e3f5;
+  --seq-2: #c3c0ec;
+  --seq-3: #9c97df;
+  --seq-4: #6f69cc;
+  --seq-5: #3d3a9e;
+  --seq-tinta-1: #101816;
+  --seq-tinta-2: #101816;
+  --seq-tinta-3: #101816;
+  --seq-tinta-4: #ffffff;
+  --seq-tinta-5: #ffffff;
+  --sombra-tip: 0 8px 28px rgba(16, 24, 22, 0.16);
+  --radio: 10px;
+  --sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plano: #0c100f;
+    --superficie: #151a19;
+    --superficie-2: #1b2120;
+    --tinta: #edf2ef;
+    --tinta-2: #b6c1bd;
+    --tenue: #8d9995;
+    --linea: #252d2b;
+    --eje: #3a4441;
+    --borde: rgba(255, 255, 255, 0.09);
+    --acento: #a7a2f4;
+    --acento-suave: #2a2950;
+    --sobre-acento: #0c100f;
+    --serie-1: #3987e5;
+    --serie-2: #d95926;
+    --serie-3: #199e70;
+    --serie-4: #c98500;
+    --serie-5: #d55181;
+    --serie-6: #008300;
+    --serie-7: #9085e9;
+    --serie-8: #e66767;
+    --serie-otras: #6d7874;
+    --seq-0: #1b2120;
+    --seq-1: #23233f;
+    --seq-2: #312f63;
+    --seq-3: #4a4596;
+    --seq-4: #736cd0;
+    --seq-5: #b1acf6;
+    --seq-tinta-1: #edf2ef;
+    --seq-tinta-2: #edf2ef;
+    --seq-tinta-3: #edf2ef;
+    --seq-tinta-4: #0c100f;
+    --seq-tinta-5: #0c100f;
+    --sombra-tip: 0 8px 28px rgba(0, 0, 0, 0.5);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plano: #0c100f;
+  --superficie: #151a19;
+  --superficie-2: #1b2120;
+  --tinta: #edf2ef;
+  --tinta-2: #b6c1bd;
+  --tenue: #8d9995;
+  --linea: #252d2b;
+  --eje: #3a4441;
+  --borde: rgba(255, 255, 255, 0.09);
+  --acento: #a7a2f4;
+  --acento-suave: #2a2950;
+  --sobre-acento: #0c100f;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --serie-5: #d55181;
+  --serie-6: #008300;
+  --serie-7: #9085e9;
+  --serie-8: #e66767;
+  --serie-otras: #6d7874;
+  --seq-0: #1b2120;
+  --seq-1: #23233f;
+  --seq-2: #312f63;
+  --seq-3: #4a4596;
+  --seq-4: #736cd0;
+  --seq-5: #b1acf6;
+  --seq-tinta-1: #edf2ef;
+  --seq-tinta-2: #edf2ef;
+  --seq-tinta-3: #edf2ef;
+  --seq-tinta-4: #0c100f;
+  --seq-tinta-5: #0c100f;
+  --sombra-tip: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--plano);
+  color: var(--tinta);
+  font: 400 15px/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.envoltura { max-width: 1320px; margin-inline: auto; padding-inline: clamp(16px, 3vw, 32px); }
+
+/* Cabecera */
+.cabecera { background: var(--superficie); border-bottom: 1px solid var(--linea); }
+.cabecera__contenido {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 20px 40px; padding-block: 28px 22px;
+}
+.cabecera__texto { display: grid; gap: 8px; flex: 1 1 36rem; max-width: 760px; }
+.sobretitulo {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--tinta-2);
+}
+h1 { font-size: clamp(28px, 3.6vw, 42px); line-height: 1.02; font-weight: 760; font-stretch: 112%; letter-spacing: -0.02em; }
+.bajada { color: var(--tinta-2); font-size: 15.5px; max-width: 62ch; }
+.frescura { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
+.frescura div { display: grid; gap: 2px; }
+.frescura dt { font-size: 12px; color: var(--tenue); }
+.frescura dd { margin: 0; font-weight: 600; font-size: 15px; }
+
+/* Filtros */
+.filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 26px; padding-block: 16px; }
+.filtro { display: grid; gap: 6px; min-width: 0; }
+.filtro__etiqueta { font-size: 12px; font-weight: 600; color: var(--tinta-2); }
+.filtro__controles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.filtro__a { color: var(--tenue); font-size: 13px; }
+.segmentado { display: inline-flex; border: 1px solid var(--eje); border-radius: 8px; background: var(--superficie); overflow: hidden; }
+.segmentado button {
+  border: 0; background: transparent; padding: 6px 11px; font-size: 13.5px; cursor: pointer; white-space: nowrap;
+}
+.segmentado button + button { border-left: 1px solid var(--linea); }
+.segmentado button:hover { background: var(--superficie-2); }
+.segmentado button[aria-pressed="true"] { background: var(--acento); color: var(--sobre-acento); font-weight: 600; }
+.select { position: relative; display: inline-block; }
+.select select {
+  appearance: none; border: 1px solid var(--eje); border-radius: 8px; background: var(--superficie);
+  padding: 6px 30px 6px 10px; font-size: 13.5px; cursor: pointer; max-width: 100%;
+}
+.select::after {
+  content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; pointer-events: none;
+  border-right: 1.5px solid var(--tinta-2); border-bottom: 1.5px solid var(--tinta-2); transform: translateY(-70%) rotate(45deg);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--eje); border-radius: 999px;
+  background: var(--superficie); padding: 5px 11px 5px 8px; font-size: 13.5px; cursor: pointer;
+}
+.chip__muestra { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--muestra); background: var(--muestra); }
+.chip[aria-pressed="false"] { color: var(--tenue); background: transparent; border-style: dashed; }
+.chip[aria-pressed="false"] .chip__muestra { background: transparent; }
+.boton-texto {
+  border: 0; background: none; padding: 6px 2px; color: var(--acento); font-weight: 600; font-size: 13.5px; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+
+/* Pestañas */
+.pestanas {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
+  background: color-mix(in srgb, var(--plano) 90%, transparent); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--linea);
+}
+.pestanas__contenido { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pestanas__lista { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; flex: 0 1 auto; min-width: 0; }
+.pestanas__lista::-webkit-scrollbar { display: none; }
+.pestanas__lista a {
+  padding: 13px 0 11px; color: var(--tinta-2); text-decoration: none; white-space: nowrap; font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.pestanas__lista a:hover { color: var(--tinta); }
+.pestanas__lista a[aria-current="page"] { color: var(--tinta); font-weight: 650; border-bottom-color: var(--acento); }
+.pestanas__resumen { font-size: 12.5px; color: var(--tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 0; min-width: 0; text-align: right; }
+@media (min-width: 1001px) { .pestanas__lista { flex: none; } }
+@media (max-width: 1000px) { .pestanas__resumen { display: none; } }
+
+/* Páginas */
+main { padding-block: 26px 40px; }
+.pagina { display: grid; gap: 18px; }
+.pagina__cabecera { display: grid; gap: 6px; max-width: 80ch; }
+h2 { font-size: 25px; font-weight: 720; font-stretch: 108%; letter-spacing: -0.012em; line-height: 1.1; }
+.pregunta { color: var(--tinta-2); font-size: 15px; }
+.lectura {
+  margin-top: 6px; font-size: 17px; line-height: 1.45; max-width: 72ch;
+}
+.lectura strong { font-weight: 650; }
+.control-pagina { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.interruptor { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.interruptor input { width: 16px; height: 16px; accent-color: var(--acento); }
+
+.rejilla { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.c-12 { grid-column: span 12; } .c-8 { grid-column: span 8; } .c-7 { grid-column: span 7; }
+.c-5 { grid-column: span 5; } .c-4 { grid-column: span 4; }
+@media (max-width: 1040px) { .c-8, .c-7, .c-5, .c-4 { grid-column: span 12; } }
+.pila { display: grid; gap: 16px; }
+
+.tarjeta {
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+  padding: 18px 20px 14px; display: grid; gap: 12px; min-width: 0;
+}
+.tarjeta__cabecera { display: grid; gap: 4px; }
+.tarjeta h3 { font-size: 16px; font-weight: 650; }
+.tarjeta__nota { font-size: 13px; color: var(--tinta-2); max-width: 70ch; }
+.alcance { font-size: 12px; color: var(--tenue); }
+.alcance::before { content: "Responde a: "; }
+.grafica { min-width: 0; position: relative; }
+.vacio { padding: 28px 0; color: var(--tenue); font-size: 14px; }
+
+/* Indicadores */
+.kpis {
+  display: grid; grid-template-columns: repeat(var(--columnas, 4), minmax(0, 1fr));
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
+}
+.kpis--3 { --columnas: 3; }
+.kpi { padding: 16px 20px 14px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.kpi + .kpi { border-left: 1px solid var(--linea); }
+.kpi__etiqueta { font-size: 13px; font-weight: 600; color: var(--tinta-2); }
+.kpi__valor { font-size: 34px; font-weight: 680; font-stretch: 94%; letter-spacing: -0.015em; line-height: 1.08; }
+.kpi--heroe .kpi__valor { font-size: clamp(40px, 4.4vw, 52px); }
+.kpi__delta, .kpi__nota { font-size: 12.5px; color: var(--tinta-2); }
+.kpi__nota { color: var(--tenue); }
+.kpi__chispa { height: 34px; margin-top: 4px; }
+@media (max-width: 900px) {
+  .kpis { --columnas: 2; }
+  .kpis--3 { --columnas: 1; }
+  .kpis .kpi:nth-child(odd) { border-left: 0; }
+  .kpis .kpi:nth-child(n+3) { border-top: 1px solid var(--linea); }
+  .kpis--3 .kpi + .kpi { border-left: 0; border-top: 1px solid var(--linea); }
+}
+@media (max-width: 520px) {
+  .kpis { --columnas: 1; }
+  .kpis .kpi + .kpi { border-left: 0; border-top: 1px solid var(--linea); }
+}
+.tarjeta .kpi { padding: 0; }
+
+/* Gráficas SVG */
+.svg { display: block; max-width: 100%; }
+.rejilla-svg { stroke: var(--linea); stroke-width: 1; shape-rendering: crispEdges; }
+.eje { stroke: var(--eje); stroke-width: 1; shape-rendering: crispEdges; }
+.eje-texto { fill: var(--tenue); font-size: 11.5px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.etiqueta-texto { fill: var(--tinta-2); font-size: 13px; font-family: var(--sans); }
+.valor-texto { fill: var(--tinta); font-size: 12px; font-weight: 650; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.nota-texto { fill: var(--tenue); font-size: 11px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.linea { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.area { stroke: none; opacity: 0.1; }
+.marca { stroke: var(--superficie); stroke-width: 2; }
+.guia { stroke: var(--eje); stroke-width: 1; }
+.capa { fill: transparent; cursor: crosshair; touch-action: pan-y; outline: none; }
+.capa:focus-visible { stroke: var(--acento); stroke-width: 1.5; }
+.fila-hit { fill: transparent; cursor: default; outline: none; }
+.fila-hit:focus-visible { stroke: var(--acento); stroke-width: 1.5; }
+.barra { transition: opacity 120ms; }
+.grafica svg:has(.fila-hit:hover) .barra:not(.activa), .grafica svg:has(.fila-hit:focus-visible) .barra:not(.activa) { opacity: 0.55; }
+
+/* Leyendas */
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--tinta-2); }
+.leyenda__item { display: inline-flex; align-items: center; gap: 7px; }
+.clave { display: inline-block; flex: none; }
+.clave--linea { width: 16px; height: 2px; border-radius: 2px; }
+.clave--enfasis { height: 3px; }
+.clave--caja { width: 10px; height: 10px; border-radius: 2px; }
+.escala { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12px; color: var(--tinta-2); }
+.escala__paso { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.escala__muestra { width: 14px; height: 10px; border-radius: 2px; flex: none; }
+.escala__muestra--punteada { border: 1px dashed var(--eje); }
+
+/* Tablas */
+.tabla-desplazable { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tabla th {
+  text-align: left; font-weight: 600; color: var(--tinta-2); font-size: 12px; padding: 8px 10px;
+  border-bottom: 1px solid var(--eje); white-space: nowrap; vertical-align: bottom;
+}
+.tabla td { padding: 7px 10px; border-bottom: 1px solid var(--linea); vertical-align: middle; white-space: nowrap; }
+.tabla tbody th { font-size: 13.5px; font-weight: 500; color: var(--tinta); border-bottom: 1px solid var(--linea); white-space: normal; vertical-align: middle; }
+.tabla tbody tr:hover td { background: var(--superficie-2); }
+.tabla .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla th button {
+  border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; gap: 4px;
+}
+.tabla th.num button { flex-direction: row-reverse; }
+.tabla th[aria-sort] { color: var(--tinta); }
+.flecha { color: var(--acento); min-width: 0.7em; }
+.tabla__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; font-size: 12.5px; color: var(--tenue); }
+.paginador { display: flex; gap: 6px; }
+.paginador button {
+  border: 1px solid var(--eje); background: var(--superficie); border-radius: 6px; padding: 4px 10px; font-size: 12.5px; cursor: pointer;
+}
+.paginador button:disabled { opacity: 0.4; cursor: default; }
+.celda-cadena { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.celda-sub { display: block; font-size: 12px; color: var(--tenue); }
+.minimo { font-weight: 650; }
+.minimo::before { content: "●"; color: var(--acento); font-size: 9px; margin-right: 5px; vertical-align: 2px; }
+.medidor { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.medidor__pista { width: 64px; height: 6px; border-radius: 3px; background: var(--acento-suave); overflow: hidden; }
+.medidor__pista span { display: block; height: 100%; background: var(--acento); border-radius: 3px; }
+.buscador {
+  border: 1px solid var(--eje); border-radius: 8px; background: var(--superficie); padding: 6px 10px; font-size: 13.5px;
+  width: min(280px, 100%);
+}
+.ver-datos summary { cursor: pointer; font-size: 13px; color: var(--acento); font-weight: 600; width: max-content; }
+.ver-datos[open] summary { margin-bottom: 8px; }
+
+/* Mapas de calor */
+.calor { border-collapse: separate; border-spacing: 2px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.calor th { font-weight: 500; color: var(--tinta-2); padding: 2px 6px; white-space: nowrap; text-align: left; }
+.calor thead th { text-align: center; font-size: 11px; color: var(--tenue); }
+.calor tbody th { position: sticky; left: 0; background: var(--superficie); z-index: 1; }
+.calor .grupo-fila th { padding-top: 10px; font-size: 11.5px; font-weight: 650; color: var(--tinta); }
+.calor td { min-width: 28px; height: 22px; border-radius: 3px; text-align: center; padding: 0 4px; }
+.calor--valores td { min-width: 70px; height: 30px; font-size: 12.5px; font-weight: 600; }
+.calor-desplazable { overflow: auto; max-height: 620px; }
+.calor-desplazable thead th { position: sticky; top: 0; background: var(--superficie); z-index: 2; }
+.calor-desplazable thead tr:nth-child(2) th { top: 20px; }
+.b0 { background: var(--seq-0); color: var(--tenue); }
+.b1 { background: var(--seq-1); color: var(--seq-tinta-1); fill: var(--seq-1); }
+.b2 { background: var(--seq-2); color: var(--seq-tinta-2); fill: var(--seq-2); }
+.b3 { background: var(--seq-3); color: var(--seq-tinta-3); fill: var(--seq-3); }
+.b4 { background: var(--seq-4); color: var(--seq-tinta-4); fill: var(--seq-4); }
+.b5 { background: var(--seq-5); color: var(--seq-tinta-5); fill: var(--seq-5); }
+svg .b0 { fill: var(--seq-0); }
+.t-b0 { fill: var(--tenue); } .t-b1 { fill: var(--seq-tinta-1); } .t-b2 { fill: var(--seq-tinta-2); }
+.t-b3 { fill: var(--seq-tinta-3); } .t-b4 { fill: var(--seq-tinta-4); } .t-b5 { fill: var(--seq-tinta-5); }
+.sin-muestreo { fill: none; stroke: var(--eje); stroke-width: 1; stroke-dasharray: 3 3; }
+.fuera { opacity: 0.25; }
+.mosaico { cursor: default; outline: none; }
+.mosaico:focus-visible rect { stroke: var(--acento); stroke-width: 2; }
+.mosaico text { font-family: var(--mono); font-size: 10.5px; pointer-events: none; }
+
+/* Ticket de la canasta */
+.ticket {
+  font-family: var(--mono); font-size: 13px; background: var(--superficie); padding: 20px 22px 26px;
+  border: 1px solid var(--borde); border-radius: var(--radio) var(--radio) 0 0; position: relative; display: grid; gap: 12px; max-width: 560px;
+  --diente: 8px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--diente) * 2) var(--diente) repeat-x,
+        linear-gradient(#000 0 0) top / 100% calc(100% - var(--diente) + 1px) no-repeat;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--diente) * 2) var(--diente) repeat-x,
+        linear-gradient(#000 0 0) top / 100% calc(100% - var(--diente) + 1px) no-repeat;
+}
+.ticket h3 { font-family: var(--sans); font-size: 16px; font-weight: 650; }
+.ticket__encabezado { display: grid; gap: 2px; text-align: center; border-bottom: 1px dashed var(--eje); padding-bottom: 10px; }
+.ticket__encabezado span { color: var(--tenue); font-size: 12px; }
+.ticket__grupo { display: grid; gap: 3px; }
+.ticket__grupo p { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tenue); }
+.ticket ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ticket li { display: flex; align-items: baseline; gap: 6px; }
+.ticket li .relleno { flex: 1; border-bottom: 1px dotted var(--eje); transform: translateY(-3px); min-width: 12px; }
+.ticket li .cantidad { color: var(--tinta-2); white-space: nowrap; }
+.ticket__total { border-top: 1px dashed var(--eje); padding-top: 10px; display: flex; justify-content: space-between; font-weight: 500; }
+
+/* Notas, salvedades y pie */
+.nota-visible { font-size: 14px; color: var(--tinta-2); max-width: 80ch; padding-left: 12px; border-left: 2px solid var(--eje); }
+.salvedades { border-top: 1px solid var(--linea); padding-top: 14px; display: grid; gap: 8px; }
+.salvedades h3 { font-size: 13px; font-weight: 650; color: var(--tinta-2); }
+.salvedades ol { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--tinta-2); max-width: 100ch; }
+.pie { border-top: 1px solid var(--linea); padding-block: 26px 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px 40px; }
+.pie h2 { font-size: 14px; font-stretch: 100%; font-weight: 650; margin-bottom: 6px; }
+.pie p, .pie li { font-size: 13px; color: var(--tinta-2); }
+.pie ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.pie code, .pie__meta { font-family: var(--mono); font-size: 12px; }
+.pie__meta { grid-column: 1 / -1; color: var(--tenue); overflow-wrap: anywhere; }
+
+/* Tooltip */
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; background: var(--superficie); color: var(--tinta);
+  border: 1px solid var(--borde); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: var(--sombra-tip);
+  max-width: 300px; display: grid; gap: 4px;
+}
+.tip__titulo { font-size: 12px; color: var(--tinta-2); font-weight: 600; margin-bottom: 2px; }
+.tip__fila { display: flex; align-items: center; gap: 8px; }
+.tip__fila strong { font-variant-numeric: tabular-nums; font-weight: 650; }
+.tip__fila span:last-child { color: var(--tinta-2); }
+.tip__clave { width: 12px; height: 2px; border-radius: 2px; flex: none; }
+.tip__clave--caja { width: 9px; height: 9px; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+@media (forced-colors: active) { .clave, .chip__muestra, .tip__clave { forced-color-adjust: none; } }
+
+/* ---- Ajustes propios de este dashboard (el resto de la hoja viene del dashboard de PROFECO) ---- */
+.kpis--5 { --columnas: 5; }
+.kpis--2 { --columnas: 2; }
+@media (max-width: 1100px) { .kpis--5 { --columnas: 3; } .kpis--5 .kpi:nth-child(4) { border-left: 0; } .kpis--5 .kpi:nth-child(n+4) { border-top: 1px solid var(--linea); } }
+@media (max-width: 900px) { .kpis--5 { --columnas: 2; } .kpis--5 .kpi { border-left: 0; } .kpis--5 .kpi:nth-child(even) { border-left: 1px solid var(--linea); } .kpis--5 .kpi:nth-child(n+3) { border-top: 1px solid var(--linea); } }
+@media (max-width: 520px) { .kpis--5 { --columnas: 1; } .kpis--5 .kpi:nth-child(even) { border-left: 0; } .kpis--5 .kpi + .kpi { border-top: 1px solid var(--linea); } }
+.c-6 { grid-column: span 6; }
+@media (max-width: 1040px) { .c-6 { grid-column: span 12; } }
+.controles-pagina { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; }
+.entrada {
+  border: 1px solid var(--eje); border-radius: 8px; background: var(--superficie); padding: 6px 10px; font-size: 13.5px;
+  width: 140px; font-variant-numeric: tabular-nums;
+}
+.select--ancho select { min-width: min(340px, 100%); }
+.chip--neutro { --muestra: var(--tinta-2); }
+.decision { padding: 12px 14px; border-radius: 8px; background: var(--acento-suave); font-size: 14.5px; max-width: 80ch; }
+.decision strong { font-weight: 650; }
+.formula { font-family: var(--mono); font-size: 12.5px; color: var(--tinta-2); }
+.pie a { color: var(--acento); }
+</style>
+<!-- cuerpo -->
+<header class="cabecera">
+  <div class="envoltura cabecera__contenido">
+    <div class="cabecera__texto">
+      <p class="sobretitulo">Análisis independiente con datos públicos de M5 (Walmart)</p>
+      <h1>Pronóstico de demanda y política de inventario</h1>
+      <p class="bajada" id="bajada"></p>
+    </div>
+    <dl class="frescura">
+      <div><dt>Historia de ventas</dt><dd id="m-historia"></dd></div>
+      <div><dt>Pronóstico</dt><dd id="m-pronostico"></dd></div>
+      <div><dt>Productos</dt><dd id="m-skus"></dd></div>
+    </dl>
+  </div>
+</header>
+
+<section class="envoltura filtros" aria-label="Filtros del tablero">
+  <div class="filtro">
+    <span class="filtro__etiqueta" id="et-lt">Lead time</span>
+    <div class="segmentado" role="group" aria-labelledby="et-lt" id="f-lt"></div>
+  </div>
+  <div class="filtro">
+    <span class="filtro__etiqueta" id="et-ns">Nivel de servicio</span>
+    <div class="segmentado" role="group" aria-labelledby="et-ns" id="f-ns"></div>
+  </div>
+  <div class="filtro">
+    <label class="filtro__etiqueta" for="f-metodo">Safety stock</label>
+    <span class="select"><select id="f-metodo"></select></span>
+  </div>
+  <div class="filtro">
+    <span class="filtro__etiqueta" id="et-abc">Clase ABC (ingreso)</span>
+    <div class="chips" role="group" aria-labelledby="et-abc" id="f-abc"></div>
+  </div>
+  <div class="filtro">
+    <span class="filtro__etiqueta" id="et-xyz">Clase XYZ (variabilidad)</span>
+    <div class="chips" role="group" aria-labelledby="et-xyz" id="f-xyz"></div>
+  </div>
+  <div class="filtro">
+    <label class="filtro__etiqueta" for="f-dept">Departamento</label>
+    <span class="select"><select id="f-dept"></select></span>
+  </div>
+  <button type="button" class="boton-texto" id="f-restablecer">Restablecer filtros</button>
+</section>
+
+<nav class="pestanas" aria-label="Secciones del tablero">
+  <div class="envoltura pestanas__contenido">
+    <div class="pestanas__lista">
+      <a href="#resumen" data-pagina="resumen">Resumen</a>
+      <a href="#pronostico" data-pagina="pronostico">Pronóstico</a>
+      <a href="#inventario" data-pagina="inventario">Inventario</a>
+      <a href="#producto" data-pagina="producto">Producto</a>
+      <a href="#portafolio" data-pagina="portafolio">Portafolio</a>
+    </div>
+    <p class="pestanas__resumen" id="resumen-filtros" aria-live="polite"></p>
+  </div>
+</nav>
+
+<main class="envoltura">
+  <!-- Página 1 · Resumen -->
+  <section class="pagina" id="p-resumen" data-pagina="resumen" aria-labelledby="h-resumen">
+    <header class="pagina__cabecera">
+      <h2 id="h-resumen">Resumen</h2>
+      <p class="pregunta">¿Cuánto inventario hace falta para atender la demanda y cuánto ahorra un mejor pronóstico?</p>
+      <p class="lectura" id="l-resumen"></p>
+    </header>
+    <div class="kpis">
+      <div class="kpi kpi--heroe">
+        <h3 class="kpi__etiqueta">Inventario para atender el 95% de la demanda</h3>
+        <p class="kpi__valor" id="k-inv"></p>
+        <p class="kpi__delta" id="k-inv-delta"></p>
+        <p class="kpi__nota" id="k-inv-nota"></p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">Error de pronóstico (WRMSSE)</h3>
+        <p class="kpi__valor" id="k-wrmsse"></p>
+        <p class="kpi__delta" id="k-wrmsse-delta"></p>
+        <p class="kpi__nota" id="k-wrmsse-nota"></p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">Fill rate logrado</h3>
+        <p class="kpi__valor" id="k-fill"></p>
+        <p class="kpi__delta" id="k-fill-delta"></p>
+        <p class="kpi__nota" id="k-fill-nota"></p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">Pronóstico de las próximas 4 semanas</h3>
+        <p class="kpi__valor" id="k-fc"></p>
+        <p class="kpi__delta" id="k-fc-delta"></p>
+        <p class="kpi__nota" id="k-fc-nota"></p>
+      </div>
+    </div>
+    <p class="alcance">lead time, safety stock y una sola clase ABC (inventario y fill rate); nivel de servicio (fill rate); clases y departamento (pronóstico)</p>
+    <div class="rejilla">
+      <article class="tarjeta c-8">
+        <header class="tarjeta__cabecera">
+          <h3>Curva servicio–inventario</h3>
+          <p class="tarjeta__nota">Cada punto es una simulación de 12 semanas contra la demanda real con un factor de seguridad distinto. La comparación válida entre políticas es a igual fill rate: cuánto inventario necesita cada una para llegar a la línea de 95%.</p>
+        </header>
+        <div class="leyenda" id="ley-curva"></div>
+        <div class="grafica" id="g-curva"></div>
+        <details class="ver-datos"><summary>Ver datos</summary><div id="t-curva"></div></details>
+        <p class="alcance">lead time, safety stock, una sola clase ABC</p>
+      </article>
+      <article class="tarjeta c-4">
+        <header class="tarjeta__cabecera">
+          <h3>Ahorro de inventario por lead time</h3>
+          <p class="tarjeta__nota">Inventario que necesita la política con LightGBM para atender el 95% de la demanda, frente a la política clásica de media móvil.</p>
+        </header>
+        <div class="grafica" id="g-ahorro-lt"></div>
+        <p class="alcance">safety stock, una sola clase ABC</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Página 2 · Pronóstico -->
+  <section class="pagina" id="p-pronostico" data-pagina="pronostico" aria-labelledby="h-pronostico" hidden>
+    <header class="pagina__cabecera">
+      <h2 id="h-pronostico">Pronóstico</h2>
+      <p class="pregunta">¿Qué tan bien pronostica el modelo y en qué productos gana?</p>
+      <p class="lectura" id="l-pronostico"></p>
+    </header>
+    <div class="kpis kpis--3">
+      <div class="kpi kpi--heroe">
+        <h3 class="kpi__etiqueta">WRMSSE de LightGBM</h3>
+        <p class="kpi__valor" id="k-p-wrmsse"></p>
+        <p class="kpi__delta" id="k-p-wrmsse-delta"></p>
+        <p class="kpi__nota">Métrica de la competencia M5; menor es mejor</p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">WAPE a nivel producto-día</h3>
+        <p class="kpi__valor" id="k-p-wape"></p>
+        <p class="kpi__delta" id="k-p-wape-delta"></p>
+        <p class="kpi__nota">Error absoluto entre demanda total</p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">Cobertura del intervalo de 80%</h3>
+        <p class="kpi__valor" id="k-p-cob"></p>
+        <p class="kpi__delta" id="k-p-cob-delta"></p>
+        <p class="kpi__nota">Medida fuera de muestra</p>
+      </div>
+    </div>
+    <p class="alcance">nada: métricas de las 3 ventanas de evaluación completas</p>
+    <div class="rejilla">
+      <article class="tarjeta c-12">
+        <header class="tarjeta__cabecera">
+          <h3 id="h-real">Venta real y pronóstico de backtesting</h3>
+          <p class="tarjeta__nota">Suma diaria de todos los productos del departamento. Cada ventana de 28 días se pronosticó solo con la historia anterior a su inicio.</p>
+        </header>
+        <div class="leyenda" id="ley-real"></div>
+        <div class="grafica" id="g-real"></div>
+        <details class="ver-datos"><summary>Ver datos</summary><div id="t-real"></div></details>
+        <p class="alcance">departamento</p>
+      </article>
+      <article class="tarjeta c-5">
+        <header class="tarjeta__cabecera">
+          <h3>WRMSSE por modelo</h3>
+          <p class="tarjeta__nota">Promedio de las 3 ventanas. Pondera por ingreso y promedia tres niveles: total, departamento y producto.</p>
+        </header>
+        <div class="grafica" id="g-wrmsse"></div>
+        <details class="ver-datos"><summary>Ver datos</summary><div id="t-wrmsse"></div></details>
+      </article>
+      <article class="tarjeta c-7">
+        <header class="tarjeta__cabecera">
+          <h3>LightGBM frente al mejor baseline de cada segmento</h3>
+          <p class="tarjeta__nota">Diferencia de WAPE contra el mejor de los cinco baselines en ese segmento ABC/XYZ. Negativo: el modelo es mejor.</p>
+        </header>
+        <div class="grafica" id="g-segmentos"></div>
+        <details class="ver-datos"><summary>Ver datos</summary><div id="t-segmentos"></div></details>
+      </article>
+      <article class="tarjeta c-7">
+        <header class="tarjeta__cabecera">
+          <h3>Error a lo largo del horizonte</h3>
+          <p class="tarjeta__nota">WAPE por día del horizonte de 28 días. El pronóstico es recursivo: los días lejanos usan predicciones como insumo.</p>
+        </header>
+        <div class="leyenda" id="ley-horizonte"></div>
+        <div class="grafica" id="g-horizonte"></div>
+      </article>
+      <article class="tarjeta c-5">
+        <header class="tarjeta__cabecera">
+          <h3>Qué aporta cada grupo de variables</h3>
+          <p class="tarjeta__nota">Ablaciones evaluadas en las 3 ventanas de calibración, anteriores a la evaluación: así se decidió el modelo sin mirar el periodo que se reporta.</p>
+        </header>
+        <div id="t-ablaciones"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Página 3 · Inventario -->
+  <section class="pagina" id="p-inventario" data-pagina="inventario" aria-labelledby="h-inventario" hidden>
+    <header class="pagina__cabecera">
+      <h2 id="h-inventario">Inventario</h2>
+      <p class="pregunta">¿Cuánto inventario necesita cada política para el mismo nivel de servicio?</p>
+      <p class="lectura" id="l-inventario"></p>
+    </header>
+    <div class="controles-pagina">
+      <div class="filtro">
+        <span class="filtro__etiqueta" id="et-objetivo">Fill rate objetivo</span>
+        <div class="segmentado" role="group" aria-labelledby="et-objetivo" id="f-objetivo"></div>
+      </div>
+    </div>
+    <div class="kpis kpis--3">
+      <div class="kpi kpi--heroe">
+        <h3 class="kpi__etiqueta">Con pronóstico LightGBM</h3>
+        <p class="kpi__valor" id="k-i-lgbm"></p>
+        <p class="kpi__delta" id="k-i-lgbm-delta"></p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">Política clásica (media móvil)</h3>
+        <p class="kpi__valor" id="k-i-clasica"></p>
+        <p class="kpi__delta" id="k-i-clasica-delta"></p>
+      </div>
+      <div class="kpi">
+        <h3 class="kpi__etiqueta">Con SeasonalNaive</h3>
+        <p class="kpi__valor" id="k-i-naive"></p>
+        <p class="kpi__delta" id="k-i-naive-delta"></p>
+      </div>
+    </div>
+    <p class="alcance">fill rate objetivo, lead time, safety stock, una sola clase ABC</p>
+    <div class="rejilla">
+      <article class="tarjeta c-7">
+        <header class="tarjeta__cabecera">
+          <h3>Escenarios de lead time y nivel de servicio</h3>
+          <p class="tarjeta__nota">Resultado de simular cada política con el factor de seguridad nominal. Fill rate: % de la demanda atendida (en valor). Servicio de ciclo: % de ciclos de reposición sin quiebre, que es lo que fija <span class="formula">z</span>.</p>
+        </header>
+        <div id="t-escenarios"></div>
+        <p class="alcance">safety stock, una sola clase ABC</p>
+      </article>
+      <article class="tarjeta c-5">
+        <header class="tarjeta__cabecera">
+          <h3>Servicio de ciclo: nominal contra logrado</h3>
+          <p class="tarjeta__nota">Política con LightGBM. La fórmula de libro promete más de lo que entrega: medir el error acumulado en el lead time acerca el resultado a lo nominal, pero no lo alcanza.</p>
+        </header>
+        <div class="leyenda" id="ley-nominal"></div>
+        <div class="grafica" id="g-nominal"></div>
+        <p class="alcance">lead time, una sola clase ABC</p>
+      </article>
+      <article class="tarjeta c-7">
+        <header class="tarjeta__cabecera">
+          <h3>Inventario necesario por clase ABC</h3>
+          <p class="tarjeta__nota">USD a costo para alcanzar el fill rate objetivo. «No alcanza»: la política no llega a ese servicio con ningún factor de seguridad simulado.</p>
+        </header>
+        <div id="t-clases"></div>
+        <p class="alcance">fill rate objetivo, lead time, safety stock</p>
+      </article>
+      <article class="tarjeta c-5">
+        <header class="tarjeta__cabecera">
+          <h3>Sensibilidad a los supuestos de costo</h3>
+          <p class="tarjeta__nota">Inventario de LightGBM frente a la política clásica (95% de fill rate, 7 días de lead time) con otros costos por pedido y de mantener. Los costos solo cambian el tamaño del lote.</p>
+        </header>
+        <div id="t-costos"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Página 4 · Producto -->
+  <section class="pagina" id="p-producto" data-pagina="producto" aria-labelledby="h-producto" hidden>
+    <header class="pagina__cabecera">
+      <h2 id="h-producto">Producto</h2>
+      <p class="pregunta">¿Cuánto se va a vender de este producto y cuánto hay que pedir hoy?</p>
+      <p class="lectura" id="l-producto"></p>
+    </header>
+    <div class="controles-pagina">
+      <div class="filtro">
+        <label class="filtro__etiqueta" for="f-sku">Producto (ordenados por ingreso)</label>
+        <span class="select select--ancho"><select id="f-sku"></select></span>
+      </div>
+      <div class="filtro">
+        <label class="filtro__etiqueta" for="f-inventario">Inventario disponible hoy (unidades)</label>
+        <input class="entrada" id="f-inventario" type="number" min="0" step="1" inputmode="numeric">
+      </div>
+    </div>
+    <div class="kpis kpis--5">
+      <div class="kpi"><h3 class="kpi__etiqueta">Pronóstico 4 semanas</h3><p class="kpi__valor" id="k-s-fc"></p><p class="kpi__nota">unidades</p></div>
+      <div class="kpi"><h3 class="kpi__etiqueta" id="k-s-dem-et">Demanda en el lead time</h3><p class="kpi__valor" id="k-s-dem"></p><p class="kpi__nota">unidades esperadas</p></div>
+      <div class="kpi"><h3 class="kpi__etiqueta">Safety stock</h3><p class="kpi__valor" id="k-s-ss"></p><p class="kpi__nota">unidades</p></div>
+      <div class="kpi"><h3 class="kpi__etiqueta">Punto de reorden</h3><p class="kpi__valor" id="k-s-rop"></p><p class="kpi__nota">unidades</p></div>
+      <div class="kpi kpi--heroe"><h3 class="kpi__etiqueta">Pedido sugerido hoy</h3><p class="kpi__valor" id="k-s-pedido"></p><p class="kpi__nota" id="k-s-pedido-nota"></p></div>
+    </div>
+    <p class="alcance">lead time, nivel de servicio, safety stock e inventario disponible</p>
+    <div class="rejilla">
+      <article class="tarjeta c-7">
+        <header class="tarjeta__cabecera">
+          <h3>Pronóstico diario de las próximas 4 semanas</h3>
+          <p class="tarjeta__nota" id="n-pronostico"></p>
+        </header>
+        <div class="controles-pagina">
+          <div class="segmentado" role="group" aria-label="Intervalo de predicción" id="f-banda">
+            <button type="button" data-banda="80">Intervalo 80%</button>
+            <button type="button" data-banda="95">Intervalo 95%</button>
+          </div>
+        </div>
+        <div class="leyenda" id="ley-sku"></div>
+        <div class="grafica" id="g-sku"></div>
+        <details class="ver-datos"><summary>Ver datos</summary><div id="t-sku"></div></details>
+      </article>
+      <article class="tarjeta c-5">
+        <header class="tarjeta__cabecera">
+          <h3>Proyección del inventario</h3>
+          <p class="tarjeta__nota" id="n-proyeccion"></p>
+        </header>
+        <div class="leyenda" id="ley-proyeccion"></div>
+        <div class="grafica" id="g-proyeccion"></div>
+      </article>
+      <article class="tarjeta c-7">
+        <header class="tarjeta__cabecera">
+          <h3>Cómo se calcula</h3>
+        </header>
+        <div id="t-calculo"></div>
+      </article>
+      <article class="tarjeta c-5">
+        <header class="tarjeta__cabecera">
+          <h3>Desempeño en el backtesting</h3>
+          <p class="tarjeta__nota">Las 12 semanas de evaluación, con 7 días de lead time y objetivo de 95%.</p>
+        </header>
+        <div class="kpis kpis--3" id="k-s-desempeno"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Página 5 · Portafolio -->
+  <section class="pagina" id="p-portafolio" data-pagina="portafolio" aria-labelledby="h-portafolio" hidden>
+    <header class="pagina__cabecera">
+      <h2 id="h-portafolio">Portafolio</h2>
+      <p class="pregunta">¿Cuánto colchón de inventario representa la política en todo el surtido?</p>
+      <p class="lectura" id="l-portafolio"></p>
+    </header>
+    <div class="kpis">
+      <div class="kpi"><h3 class="kpi__etiqueta">Productos</h3><p class="kpi__valor" id="k-f-skus"></p><p class="kpi__nota" id="k-f-skus-nota"></p></div>
+      <div class="kpi"><h3 class="kpi__etiqueta">Pronóstico 4 semanas</h3><p class="kpi__valor" id="k-f-fc"></p><p class="kpi__nota">unidades</p></div>
+      <div class="kpi"><h3 class="kpi__etiqueta">Safety stock</h3><p class="kpi__valor" id="k-f-ss"></p><p class="kpi__nota">unidades</p></div>
+      <div class="kpi kpi--heroe"><h3 class="kpi__etiqueta">Valor del safety stock</h3><p class="kpi__valor" id="k-f-valor"></p><p class="kpi__nota" id="k-f-valor-nota"></p></div>
+    </div>
+    <p class="alcance">todos los filtros</p>
+    <div class="rejilla">
+      <article class="tarjeta c-12">
+        <header class="tarjeta__cabecera">
+          <h3>Valor del safety stock por segmento ABC/XYZ</h3>
+          <p class="tarjeta__nota">USD a costo, con los parámetros y filtros vigentes.</p>
+        </header>
+        <div class="grafica" id="g-valor"></div>
+      </article>
+      <article class="tarjeta c-12">
+        <header class="tarjeta__cabecera">
+          <h3>Política por producto</h3>
+          <p class="tarjeta__nota">Recalculada con los filtros vigentes. Reponer hasta = punto de reorden + lote.</p>
+        </header>
+        <div class="controles-pagina">
+          <input class="buscador" id="b-sku" type="search" placeholder="Buscar producto (p. ej. FOODS_3_120)" aria-label="Buscar producto">
+          <button type="button" class="boton-texto" id="b-csv">Descargar CSV</button>
+        </div>
+        <div id="t-portafolio"></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="envoltura pie">
+  <section>
+    <h2>Fuente y método</h2>
+    <p>Datos de la competencia <em>M5 Forecasting</em> (Walmart, Universidad de Nicosia), categoría FOODS de la tienda CA_1. Pronóstico con un modelo global LightGBM evaluado con backtesting en 3 ventanas de 28 días; la política de inventario (s, S) con revisión diaria se simula contra la demanda real de esas 12 semanas.</p>
+  </section>
+  <section>
+    <h2>Datos y salvedades</h2>
+    <ul>
+      <li>Por las reglas de M5, esta página no incluye ventas ni precios originales: solo pronósticos, métricas, resultados de simulación y agregados por departamento.</li>
+      <li>M5 registra ventas, no demanda: un quiebre real aparece como venta cero.</li>
+      <li>Costos supuestos: costo unitario de 70% del precio, 25% anual de mantener y USD 5 por pedido.</li>
+      <li>Lead time fijo, sin mínimos de compra, capacidad ni caducidad.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Código</h2>
+    <p>Pipeline, notebooks y pruebas en <a href="https://github.com/isaacmartinez23/Pronostico-de-Demanda-y-Politica-de-Inventario">GitHub</a>. Portafolio: <a href="https://isaacmartinez.space">isaacmartinez.space</a>.</p>
+  </section>
+  <p class="pie__meta" id="pie-meta"></p>
+</footer>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script type="application/json" id="datos-dashboard">__DATOS_DASHBOARD__</script>
+<script>
+(() => {
+  'use strict';
+
+  const D = JSON.parse(document.getElementById('datos-dashboard').textContent);
+  const NS = 'http://www.w3.org/2000/svg';
+  const SVG = new Set(['svg', 'g', 'path', 'line', 'rect', 'circle', 'text']);
+  const $ = (sel) => document.querySelector(sel);
+
+  // ---------------------------------------------------------------- utilidades
+  function el(tag, attrs = {}, hijos = []) {
+    const n = SVG.has(tag) ? document.createElementNS(NS, tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'texto') n.textContent = v;
+      else if (k === 'clase') n.setAttribute('class', v);
+      else if (k === 'estilo') n.setAttribute('style', v);
+      else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? '' : v);
+    }
+    for (const h of [].concat(hijos)) if (h != null) n.append(h);
+    return n;
+  }
+
+  const numero = (min, max) => new Intl.NumberFormat('es-MX', { minimumFractionDigits: min, maximumFractionDigits: max });
+  const N0 = numero(0, 0), N1 = numero(1, 1), N2 = numero(2, 2), N3 = numero(3, 3);
+  const COMPACTO = new Intl.NumberFormat('es-MX', { notation: 'compact', maximumFractionDigits: 1 });
+  const FECHA = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const DIA_MES = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const DIA_SEMANA = new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const FECHA_HORA = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+  const fin = Number.isFinite;
+  const menos = (v, f) => (v < 0 ? '−' : '') + f(Math.abs(v));
+  const aFecha = (iso) => new Date(iso + 'T00:00:00Z');
+
+  // Los porcentajes llegan como fracción (0.95) y se muestran como 95%.
+  const F = {
+    entero: (v) => (fin(v) ? menos(v, (x) => N0.format(x)) : '–'),
+    dec1: (v) => (fin(v) ? menos(v, (x) => N1.format(x)) : '–'),
+    dec3: (v) => (fin(v) ? menos(v, (x) => N3.format(x)) : '–'),
+    usd: (v) => (fin(v) ? menos(v, (x) => '$' + N0.format(x)) : '–'),
+    usdk: (v) => (fin(v) ? menos(v, (x) => '$' + COMPACTO.format(x)) : '–'),
+    pct: (v, d = 1) => (fin(v) ? menos(v * 100, (x) => numero(d, d).format(x)) + '%' : '–'),
+    signo: (v, d = 0) => (fin(v) ? (v > 0 ? '+' : v < 0 ? '−' : '') + numero(d, d).format(Math.abs(v * 100)) + '%' : '–'),
+    fecha: (iso) => FECHA.format(aFecha(iso)),
+    diaMes: (iso) => DIA_MES.format(aFecha(iso)),
+    diaSemana: (iso) => DIA_SEMANA.format(aFecha(iso)),
+  };
+  const suma = (xs) => xs.reduce((a, b) => a + (fin(b) ? b : 0), 0);
+  const promedio = (xs) => { const v = xs.filter(fin); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const rango = (n) => Array.from({ length: n }, (_, i) => i);
+  function filasDonde(ds, pred) { const n = Object.values(ds)[0].length, out = []; for (let i = 0; i < n; i++) if (pred(i)) out.push(i); return out; }
+
+  const lienzo = document.createElement('canvas').getContext('2d');
+  function medir(texto, tam = 12, peso = 400) {
+    lienzo.font = `${peso} ${tam}px Archivo, system-ui, sans-serif`;
+    return lienzo.measureText(texto).width;
+  }
+  function recortar(texto, ancho, tam = 13) {
+    if (medir(texto, tam) <= ancho) return texto;
+    let t = texto;
+    while (t.length > 1 && medir(t + '…', tam) > ancho) t = t.slice(0, -1);
+    return t.trimEnd() + '…';
+  }
+
+  // ---------------------------------------------------------------- catálogos
+  const M = D.meta, S = D.skus, NSKU = S.id.length;
+  const CLASICA = 'Clásica (media móvil)', NAIVE = 'SeasonalNaive', LGBM = 'LightGBM';
+  const POLITICAS = [LGBM, CLASICA, NAIVE];
+  const COLOR_POLITICA = { [LGBM]: 'var(--serie-1)', [CLASICA]: 'var(--serie-2)', [NAIVE]: 'var(--serie-3)' };
+  const NOMBRE_POLITICA = { [LGBM]: 'Con LightGBM', [CLASICA]: 'Clásica (media móvil)', [NAIVE]: 'Con SeasonalNaive' };
+  const METODOS = { sqrt: 'Fórmula de libro · z·σ·√L', acumulado: 'Error acumulado · z·σ(L)', empirico: 'Cuantil empírico' };
+  const METODO_CORTO = { sqrt: 'fórmula de libro', acumulado: 'error acumulado', empirico: 'cuantil empírico' };
+  const PATRON = { suave: 'demanda suave', 'errática': 'demanda errática', intermitente: 'demanda intermitente', irregular: 'demanda irregular' };
+  const DEPTOS = [...new Set(S.dept)].sort();
+  const FECHAS = M.pronostico_fechas;
+
+  // ---------------------------------------------------------------- estado y filtros
+  const INICIAL = { lt: 7, ns: 0.95, metodo: 'sqrt', abc: ['A', 'B', 'C'], xyz: ['X', 'Y', 'Z'], dept: '' };
+  const E = {
+    lt: INICIAL.lt, ns: INICIAL.ns, metodo: INICIAL.metodo, abc: new Set(INICIAL.abc), xyz: new Set(INICIAL.xyz), dept: INICIAL.dept,
+    objetivo: 0.95, banda: 80, sku: 0, inventario: null, busqueda: '', pagina: 'resumen',
+  };
+  const escenario = () => M.escenarios.findIndex((e) => e.lead_time === E.lt && e.nivel === E.ns && e.metodo === E.metodo);
+  const skusFiltrados = () => rango(NSKU).filter((i) => E.abc.has(S.abc[i]) && E.xyz.has(S.xyz[i]) && (!E.dept || S.dept[i] === E.dept));
+  // La simulación solo existe por clase ABC completa: con una sola clase marcada se usa esa; si no, el total.
+  const grupo = () => (E.abc.size === 1 ? [...E.abc][0] : 'Total');
+  const textoGrupo = () => (grupo() === 'Total' ? 'todo el surtido' : `la clase ${grupo()}`);
+  const textoNs = (v) => N0.format(v * 100) + '%';
+
+  function necesario(policy, { lt = E.lt, grp = grupo(), objetivo = 0.95, metodo = E.metodo } = {}) {
+    const N = D.necesario;
+    const i = filasDonde(N, (k) => N.policy[k] === policy && N.lead_time[k] === lt && N.group[k] === grp && N.target_fill_rate[k] === objetivo && N.ss_method[k] === metodo)[0];
+    return i == null ? null : N.avg_inv_value[i];
+  }
+  function escenarioSim(policy, { lt = E.lt, ns = E.ns, grp = grupo(), metodo = E.metodo } = {}) {
+    const X = D.escenarios;
+    const i = filasDonde(X, (k) => X.policy[k] === policy && X.lead_time[k] === lt && X.service_level[k] === ns && X.group[k] === grp && X.ss_method[k] === metodo)[0];
+    return i == null ? null : Object.fromEntries(Object.keys(X).map((c) => [c, X[c][i]]));
+  }
+  function wrmsseMedio() {
+    const W = D.wrmsse, out = {};
+    for (const i of filasDonde(W, (k) => W.level[k] === 'WRMSSE')) (out[W.model[i]] ||= []).push(W.value[i]);
+    return Object.fromEntries(Object.entries(out).map(([m, v]) => [m, promedio(v)]));
+  }
+
+  // ---------------------------------------------------------------- tooltip
+  const tip = $('#tip');
+  function mostrarTip(nodos, x, y) {
+    tip.replaceChildren(...nodos);
+    tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    let izq = x + 14, arriba = y + 14;
+    if (izq + r.width > innerWidth - 8) izq = x - r.width - 14;
+    if (arriba + r.height > innerHeight - 8) arriba = y - r.height - 14;
+    tip.style.left = Math.max(8, izq) + 'px';
+    tip.style.top = Math.max(8, arriba) + 'px';
+  }
+  const ocultarTip = () => { tip.hidden = true; };
+  const tituloTip = (t) => el('div', { clase: 'tip__titulo', texto: t });
+  const filaTip = (color, valor, nombre, caja = false) =>
+    el('div', { clase: 'tip__fila' }, [
+      color ? el('span', { clase: 'tip__clave' + (caja ? ' tip__clave--caja' : ''), estilo: `background:${color}` }) : null,
+      el('strong', { texto: valor }),
+      el('span', { texto: nombre }),
+    ]);
+  function tipEnElemento(nodo, contenido) {
+    const r = nodo.getBoundingClientRect();
+    mostrarTip(contenido, r.left + r.width / 2, r.top + r.height / 2);
+  }
+  addEventListener('scroll', ocultarTip, { passive: true });
+
+  // ---------------------------------------------------------------- montaje responsivo
+  const observador = new ResizeObserver((entradas) => {
+    for (const e of entradas) {
+      const c = e.target, w = Math.floor(e.contentRect.width);
+      if (w > 0 && w !== c._ancho && c._dibujar) { c._ancho = w; c._dibujar(w); }
+    }
+  });
+  function montar(cont, dibujar) {
+    cont._dibujar = (w) => { cont.replaceChildren(); dibujar(w); };
+    if (!cont._observado) { observador.observe(cont); cont._observado = true; }
+    const w = Math.floor(cont.clientWidth);
+    if (w > 0) { cont._ancho = w; cont._dibujar(w); }
+  }
+  const vacio = (texto = 'Sin datos para los filtros seleccionados.') => el('p', { clase: 'vacio', texto });
+
+  function escala([d0, d1], [r0, r1], nTicks = 5, ceroAjustado = false) {
+    if (d0 === d1) { d0 -= 1; d1 += 1; }
+    const bruto = (d1 - d0) / nTicks;
+    const e = Math.pow(10, Math.floor(Math.log10(bruto)));
+    const f = bruto / e;
+    const paso = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * e;
+    const n1 = Math.ceil(d1 / paso) * paso;
+    const n0 = ceroAjustado && d0 < 0 && d0 > -paso ? d0 - (n1 - d0) * 0.02 : Math.floor(d0 / paso) * paso;
+    const s = (v) => r0 + ((v - n0) / (n1 - n0)) * (r1 - r0);
+    s.ticks = [];
+    for (let v = Math.ceil(n0 / paso) * paso; v <= n1 + paso / 2; v += paso) s.ticks.push(Number(v.toFixed(10)));
+    return s;
+  }
+
+  // Marcas del eje x para series diarias: una cada k días, sin encimarse.
+  const ticksDias = (fechas) => (util) => {
+    const max = Math.max(2, Math.floor(util / 70));
+    const k = Math.max(1, Math.ceil(fechas.length / max));
+    return rango(fechas.length).filter((i) => i % k === 0).map((i) => ({ i, texto: F.diaMes(fechas[i]) }));
+  };
+
+  // ---------------------------------------------------------------- gráfica de líneas (eje x por posición)
+  function graficaLineas(cont, cfg) {
+    const { n, series, formato, formatoEje = formato, titulo, alto = 290, cero = false, ticks, tituloX, banda } = cfg;
+    montar(cont, (ancho) => {
+      const visibles = series.filter((s) => s.valores.some(fin));
+      if (!n || !visibles.length) return cont.append(vacio());
+      const todos = visibles.flatMap((s) => s.valores.filter(fin)).concat(banda ? [...banda.lo, ...banda.hi].filter(fin) : []);
+      let min = Math.min(...todos), max = Math.max(...todos);
+      const holgura = (max - min) * 0.06 || Math.abs(max) * 0.02 || 1;
+      min = cero ? Math.min(0, min) : min - holgura;
+      max += holgura;
+      const m = { t: 12, b: 30, r: 14 };
+      const y = escala([min, max], [alto - m.b, m.t], 5);
+      m.l = Math.ceil(Math.max(...y.ticks.map((t) => medir(formatoEje(t), 11.5)))) + 12;
+      const util = ancho - m.l - m.r;
+      const x = (i) => (n === 1 ? m.l + util / 2 : m.l + (i * util) / (n - 1));
+
+      const svg = el('svg', { clase: 'svg', width: ancho, height: alto, viewBox: `0 0 ${ancho} ${alto}`, role: 'img', 'aria-label': titulo });
+      for (const t of y.ticks) {
+        const yy = Math.round(y(t)) + 0.5;
+        if (yy < m.t - 1 || yy > alto - m.b + 1) continue;
+        svg.append(el('line', { clase: 'rejilla-svg', x1: m.l, x2: ancho - m.r, y1: yy, y2: yy }));
+        svg.append(el('text', { clase: 'eje-texto', x: m.l - 8, y: yy, 'text-anchor': 'end', 'dominant-baseline': 'middle', texto: formatoEje(t) }));
+      }
+      svg.append(el('line', { clase: 'eje', x1: m.l, x2: ancho - m.r, y1: alto - m.b + 0.5, y2: alto - m.b + 0.5 }));
+      for (const t of ticks(util)) {
+        svg.append(el('text', { clase: 'eje-texto', x: x(t.i), y: alto - 9, 'text-anchor': t.i === 0 ? 'start' : t.i === n - 1 ? 'end' : 'middle', texto: t.texto }));
+      }
+      if (banda) {
+        const idx = rango(n).filter((i) => fin(banda.lo[i]) && fin(banda.hi[i]));
+        if (idx.length) {
+          const d = idx.map((i, k) => (k ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(banda.hi[i]).toFixed(1)).join('')
+            + [...idx].reverse().map((i) => 'L' + x(i).toFixed(1) + ',' + y(banda.lo[i]).toFixed(1)).join('') + 'Z';
+          svg.append(el('path', { d, estilo: `fill:${banda.color};fill-opacity:.16;stroke:none` }));
+        }
+      }
+      for (const s of [...visibles].sort((a, b) => (a.enfasis ? 1 : 0) - (b.enfasis ? 1 : 0))) {
+        if (s.soloPuntos) {
+          s.valores.forEach((v, i) => { if (fin(v)) svg.append(el('circle', { clase: 'marca', cx: x(i), cy: y(v), r: 5, estilo: `fill:${s.color}` })); });
+          continue;
+        }
+        let d = '', abierto = false;
+        s.valores.forEach((v, i) => {
+          if (fin(v)) { d += (abierto ? 'L' : 'M') + x(i).toFixed(1) + ',' + y(v).toFixed(1); abierto = true; } else abierto = false;
+        });
+        svg.append(el('path', { clase: 'linea', d, estilo: `stroke:${s.color};stroke-width:${s.grosor || 2}px${s.punteada ? ';stroke-dasharray:5 4' : ''}` }));
+      }
+
+      const guia = el('line', { clase: 'guia', y1: m.t, y2: alto - m.b, visibility: 'hidden' });
+      const lineas = visibles.filter((s) => !s.soloPuntos);
+      const puntos = lineas.map((s) => el('circle', { clase: 'marca', r: 4.5, estilo: `fill:${s.color}`, visibility: 'hidden' }));
+      const capa = el('rect', { clase: 'capa', x: m.l - 8, y: m.t, width: util + 16, height: alto - m.t - m.b, tabindex: 0, role: 'img', 'aria-label': `${titulo}. Usa las flechas para recorrer los días.` });
+      svg.append(guia, ...puntos, capa);
+      let actual = n - 1;
+      const mostrar = (i, cx, cy) => {
+        actual = i;
+        const px = x(i);
+        guia.setAttribute('x1', px); guia.setAttribute('x2', px); guia.setAttribute('visibility', 'visible');
+        lineas.forEach((s, k) => {
+          const v = s.valores[i];
+          if (fin(v)) { puntos[k].setAttribute('cx', px); puntos[k].setAttribute('cy', y(v)); puntos[k].setAttribute('visibility', 'visible'); }
+          else puntos[k].setAttribute('visibility', 'hidden');
+        });
+        const filas = visibles.filter((s) => fin(s.valores[i])).map((s) => filaTip(s.color, s.tip ? s.tip(i) : formato(s.valores[i]), s.nombre));
+        if (banda && fin(banda.lo[i])) filas.push(filaTip(banda.color, `${formato(banda.lo[i])} – ${formato(banda.hi[i])}`, banda.nombre, true));
+        mostrarTip([tituloTip(tituloX(i)), ...filas], cx, cy);
+      };
+      const ocultar = () => { guia.setAttribute('visibility', 'hidden'); puntos.forEach((p) => p.setAttribute('visibility', 'hidden')); ocultarTip(); };
+      const desdePuntero = (e) => {
+        const r = svg.getBoundingClientRect();
+        const px = ((e.clientX - r.left) * ancho) / r.width;
+        const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round(((px - m.l) / util) * (n - 1))));
+        mostrar(i, e.clientX, e.clientY);
+      };
+      const enPunto = (i) => { const r = svg.getBoundingClientRect(); mostrar(i, r.left + (x(i) * r.width) / ancho, r.top + m.t + 24); };
+      capa.addEventListener('pointermove', desdePuntero);
+      capa.addEventListener('pointerdown', desdePuntero);
+      capa.addEventListener('pointerleave', ocultar);
+      capa.addEventListener('focus', () => enPunto(actual));
+      capa.addEventListener('blur', ocultar);
+      capa.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); enPunto(Math.max(0, Math.min(n - 1, actual + (e.key === 'ArrowRight' ? 1 : -1)))); }
+        else if (e.key === 'Escape') ocultar();
+      });
+      cont.append(svg);
+    });
+  }
+
+  // ---------------------------------------------------------------- gráfica x-y (ambos ejes numéricos)
+  function graficaXY(cont, cfg) {
+    const { series, formatoX, formatoY, formatoEjeX = formatoX, formatoEjeY = formatoY, titulo, alto = 300, guiaY, marcas = [], etiquetaX, rangoY, ticksX } = cfg;
+    montar(cont, (ancho) => {
+      const visibles = series.filter((s) => s.puntos.length);
+      if (!visibles.length) return cont.append(vacio());
+      const px = visibles.flatMap((s) => s.puntos.map((p) => p.x)), py = visibles.flatMap((s) => s.puntos.map((p) => p.y));
+      let [x0, x1] = [Math.min(...px), Math.max(...px)];
+      const hx = (x1 - x0) * 0.04 || 1;
+      x0 -= hx; x1 += hx;
+      let [y0, y1] = rangoY || [Math.min(...py), Math.max(...py)];
+      if (!rangoY) { const hy = (y1 - y0) * 0.06 || 1; y0 -= hy; y1 += hy; }
+      const m = { t: 14, b: etiquetaX ? 46 : 30, r: 18 };
+      const y = escala([y0, y1], [alto - m.b, m.t], 5);
+      m.l = Math.ceil(Math.max(...y.ticks.map((t) => medir(formatoEjeY(t), 11.5)))) + 12;
+      const x = escala([x0, x1], [m.l, ancho - m.r], ancho < 520 ? 3 : 5);
+      const dentroX = (v) => x(v) >= m.l - 1 && x(v) <= ancho - m.r + 1;
+      const svg = el('svg', { clase: 'svg', width: ancho, height: alto, viewBox: `0 0 ${ancho} ${alto}`, role: 'img', 'aria-label': titulo });
+      for (const t of y.ticks) {
+        const yy = Math.round(y(t)) + 0.5;
+        if (yy < m.t - 1 || yy > alto - m.b + 1) continue;
+        svg.append(el('line', { clase: 'rejilla-svg', x1: m.l, x2: ancho - m.r, y1: yy, y2: yy }));
+        svg.append(el('text', { clase: 'eje-texto', x: m.l - 8, y: yy, 'text-anchor': 'end', 'dominant-baseline': 'middle', texto: formatoEjeY(t) }));
+      }
+      svg.append(el('line', { clase: 'eje', x1: m.l, x2: ancho - m.r, y1: alto - m.b + 0.5, y2: alto - m.b + 0.5 }));
+      for (const t of (ticksX || x.ticks).filter(dentroX)) {
+        svg.append(el('text', { clase: 'eje-texto', x: x(t), y: alto - m.b + 18, 'text-anchor': 'middle', texto: formatoEjeX(t) }));
+      }
+      if (etiquetaX) svg.append(el('text', { clase: 'nota-texto', x: m.l + (ancho - m.l - m.r) / 2, y: alto - 6, 'text-anchor': 'middle', texto: etiquetaX }));
+      if (fin(guiaY)) {
+        const yy = Math.round(y(guiaY)) + 0.5;
+        svg.append(el('line', { clase: 'guia', x1: m.l, x2: ancho - m.r, y1: yy, y2: yy, estilo: 'stroke-dasharray:4 4' }));
+      }
+      for (const s of visibles) {
+        const pts = [...s.puntos].sort((a, b) => a.x - b.x);
+        const d = pts.map((p, k) => (k ? 'L' : 'M') + x(p.x).toFixed(1) + ',' + y(p.y).toFixed(1)).join('');
+        svg.append(el('path', { clase: 'linea', d, estilo: `stroke:${s.color};stroke-width:${s.grosor || 2}px${s.punteada ? ';stroke-dasharray:5 4' : ''}` }));
+        if (s.marcadores) for (const p of pts) svg.append(el('circle', { clase: 'marca', cx: x(p.x), cy: y(p.y), r: 4, estilo: `fill:${s.color}` }));
+      }
+      for (const mk of marcas) {
+        if (!fin(mk.x) || !fin(mk.y)) continue;
+        svg.append(el('circle', { clase: 'marca', cx: x(mk.x), cy: y(mk.y), r: 6.5, estilo: `fill:${mk.color}` }));
+        svg.append(el('text', { clase: 'valor-texto', x: x(mk.x) + (mk.izquierda ? -10 : 10), y: y(mk.y) + 18, 'text-anchor': mk.izquierda ? 'end' : 'start', texto: mk.texto }));
+      }
+      // Tooltip: el punto más cercano al puntero, entre todas las series.
+      const capa = el('rect', { clase: 'capa', x: m.l, y: m.t, width: ancho - m.l - m.r, height: alto - m.t - m.b, role: 'img', 'aria-label': titulo });
+      const resalte = el('circle', { clase: 'marca', r: 5.5, visibility: 'hidden' });
+      svg.append(resalte, capa);
+      capa.addEventListener('pointermove', (e) => {
+        const r = svg.getBoundingClientRect();
+        const mx = ((e.clientX - r.left) * ancho) / r.width, my = ((e.clientY - r.top) * alto) / r.height;
+        let mejor = null;
+        for (const s of visibles) for (const p of s.puntos) {
+          const dd = Math.hypot(x(p.x) - mx, y(p.y) - my);
+          if (!mejor || dd < mejor.dd) mejor = { s, p, dd };
+        }
+        if (!mejor || mejor.dd > 40) { resalte.setAttribute('visibility', 'hidden'); return ocultarTip(); }
+        resalte.setAttribute('cx', x(mejor.p.x)); resalte.setAttribute('cy', y(mejor.p.y));
+        resalte.setAttribute('style', `fill:${mejor.s.color}`); resalte.setAttribute('visibility', 'visible');
+        mostrarTip([tituloTip(mejor.s.nombre), ...(mejor.p.tip || [filaTip(null, formatoY(mejor.p.y), ''), filaTip(null, formatoX(mejor.p.x), '')])], e.clientX, e.clientY);
+      });
+      capa.addEventListener('pointerleave', () => { resalte.setAttribute('visibility', 'hidden'); ocultarTip(); });
+      cont.append(svg);
+    });
+  }
+
+  // ---------------------------------------------------------------- barras horizontales
+  function rutaBarra(x0, x1, y, h, r) {
+    const w = Math.abs(x1 - x0);
+    if (w < 1) return `M${x0},${y}h1v${h}h-1Z`;
+    r = Math.min(r, w, h / 2);
+    const s = x1 >= x0 ? 1 : -1;
+    return `M${x0},${y}H${x1 - s * r}Q${x1},${y} ${x1},${y + r}V${y + h - r}Q${x1},${y + h} ${x1 - s * r},${y + h}H${x0}Z`;
+  }
+  function graficaBarras(cont, cfg) {
+    const { filas, formato, formatoEje = formato, titulo } = cfg;
+    montar(cont, (ancho) => {
+      if (!filas.length) return cont.append(vacio());
+      const altoFila = 34, grosor = 16, m = { t: 2, b: 26 };
+      const angosto = ancho < 520;
+      m.l = Math.min(Math.ceil(Math.max(...filas.map((f) => medir(f.etiqueta, 13)))) + 14, Math.round(ancho * (angosto ? 0.4 : 0.32)));
+      const textos = filas.map((f) => f.texto ?? formato(f.valor));
+      m.r = Math.ceil(Math.max(...textos.map((t) => medir(t, 12, 650)))) + 16;
+      const alto = m.t + m.b + filas.length * altoFila;
+      const valores = filas.map((f) => f.valor);
+      const x = escala([Math.min(0, ...valores), Math.max(0, ...valores)], [m.l, ancho - m.r], angosto ? 3 : 5, true);
+      const svg = el('svg', { clase: 'svg', width: ancho, height: alto, viewBox: `0 0 ${ancho} ${alto}`, role: 'img', 'aria-label': titulo });
+      for (const t of x.ticks) {
+        const xx = Math.round(x(t)) + 0.5;
+        if (xx < m.l - 1 || xx > ancho - m.r + 1) continue;
+        svg.append(el('line', { clase: 'rejilla-svg', x1: xx, x2: xx, y1: m.t, y2: alto - m.b }));
+        svg.append(el('text', { clase: 'eje-texto', x: xx, y: alto - 8, 'text-anchor': 'middle', texto: formatoEje(t) }));
+      }
+      const x0 = x(0);
+      filas.forEach((f, k) => {
+        const cy = m.t + k * altoFila + altoFila / 2;
+        svg.append(el('text', { clase: 'etiqueta-texto', x: m.l - 10, y: cy, 'text-anchor': 'end', 'dominant-baseline': 'middle', texto: recortar(f.etiqueta, m.l - 14) }));
+        const barra = el('path', { clase: 'barra', d: rutaBarra(x0, x(f.valor), cy - grosor / 2, grosor, 4), estilo: `fill:${f.color}` });
+        svg.append(barra);
+        const xt = f.valor >= 0 ? x(f.valor) + 6 : x0 + 6;
+        svg.append(el('text', { clase: 'valor-texto', x: xt, y: cy, 'dominant-baseline': 'middle', texto: textos[k] }));
+        const hit = el('rect', { clase: 'fila-hit', x: 0, y: cy - altoFila / 2, width: ancho, height: altoFila, tabindex: 0, 'aria-label': `${f.etiqueta}: ${textos[k]}` });
+        const contenido = () => [tituloTip(f.etiqueta), filaTip(f.color, textos[k], f.nombreValor || titulo, true), ...(f.extra || [])];
+        hit.addEventListener('pointerenter', () => barra.classList.add('activa'));
+        hit.addEventListener('pointermove', (e) => mostrarTip(contenido(), e.clientX, e.clientY));
+        hit.addEventListener('pointerleave', () => { barra.classList.remove('activa'); ocultarTip(); });
+        hit.addEventListener('focus', () => { barra.classList.add('activa'); tipEnElemento(hit, contenido()); });
+        hit.addEventListener('blur', () => { barra.classList.remove('activa'); ocultarTip(); });
+        svg.append(hit);
+      });
+      svg.append(el('line', { clase: 'eje', x1: Math.round(x0) + 0.5, x2: Math.round(x0) + 0.5, y1: m.t, y2: alto - m.b }));
+      cont.append(svg);
+    });
+  }
+
+  // ---------------------------------------------------------------- tablas
+  function tablaDatos(cont, cfg) {
+    const st = cont._tabla || (cont._tabla = { orden: cfg.orden || { clave: cfg.columnas[0].clave, desc: false } });
+    st.pagina = 0;
+    st.cfg = cfg;
+    pintarTabla(cont);
+  }
+  function pintarTabla(cont) {
+    const st = cont._tabla, cfg = st.cfg;
+    if (!cfg.filas.length) return cont.replaceChildren(vacio(cfg.vacio));
+    const col = cfg.columnas.find((c) => c.clave === st.orden.clave) || cfg.columnas[0];
+    const filas = cfg.sinOrden ? cfg.filas : cfg.filas.map((f, i) => [f, i]).sort(([a, ia], [b, ib]) => {
+      const va = col.valor(a), vb = col.valor(b);
+      let r = typeof va === 'string' || typeof vb === 'string' ? String(va ?? '').localeCompare(String(vb ?? ''), 'es') : (fin(va) ? va : -Infinity) - (fin(vb) ? vb : -Infinity);
+      if (st.orden.desc) r = -r;
+      return r || ia - ib;
+    }).map(([f]) => f);
+    const porPagina = cfg.porPagina || filas.length;
+    const paginas = Math.max(1, Math.ceil(filas.length / porPagina));
+    st.pagina = Math.min(st.pagina, paginas - 1);
+    const visibles = filas.slice(st.pagina * porPagina, (st.pagina + 1) * porPagina);
+
+    const cabecera = el('tr', {}, cfg.columnas.map((c) => {
+      if (cfg.sinOrden) return el('th', { scope: 'col', clase: c.num ? 'num' : null, texto: c.titulo });
+      const activa = c.clave === st.orden.clave;
+      const boton = el('button', { type: 'button' }, [el('span', { texto: c.titulo }), el('span', { clase: 'flecha', 'aria-hidden': 'true', texto: activa ? (st.orden.desc ? '↓' : '↑') : '' })]);
+      boton.addEventListener('click', () => {
+        st.orden = activa ? { clave: c.clave, desc: !st.orden.desc } : { clave: c.clave, desc: !!c.num };
+        st.pagina = 0;
+        pintarTabla(cont);
+      });
+      return el('th', { scope: 'col', clase: c.num ? 'num' : null, 'aria-sort': activa ? (st.orden.desc ? 'descending' : 'ascending') : null }, boton);
+    }));
+    const cuerpo = visibles.map((f) => el('tr', {}, cfg.columnas.map((c) => {
+      const contenido = c.formato ? c.formato(f) : c.valor(f);
+      return el(c.encabezado ? 'th' : 'td', { clase: c.num ? 'num' : null, scope: c.encabezado ? 'row' : null }, contenido instanceof Node ? contenido : document.createTextNode(contenido ?? '–'));
+    })));
+    const tabla = el('table', { clase: 'tabla' }, [el('thead', {}, cabecera), el('tbody', {}, cuerpo)]);
+    const nodos = [el('div', { clase: 'tabla-desplazable' }, tabla)];
+    if (paginas > 1) {
+      const inicio = st.pagina * porPagina + 1, final = Math.min(filas.length, (st.pagina + 1) * porPagina);
+      const ir = (delta) => { st.pagina += delta; pintarTabla(cont); };
+      nodos.push(el('div', { clase: 'tabla__pie' }, [
+        el('span', { texto: `${F.entero(inicio)}–${F.entero(final)} de ${F.entero(filas.length)} filas` }),
+        el('div', { clase: 'paginador' }, [
+          el('button', { type: 'button', disabled: st.pagina === 0, onclick: () => ir(-1), texto: 'Anterior' }),
+          el('button', { type: 'button', disabled: st.pagina >= paginas - 1, onclick: () => ir(1), texto: 'Siguiente' }),
+        ]),
+      ]));
+    } else if (cfg.pie) {
+      nodos.push(el('div', { clase: 'tabla__pie' }, el('span', { texto: cfg.pie })));
+    }
+    cont.replaceChildren(...nodos);
+  }
+  const celdaColor = (color, texto) => el('span', { clase: 'celda-cadena' }, [el('span', { clase: 'clave clave--caja', estilo: `background:${color}` }), el('span', { texto })]);
+  const medidor = (frac) => el('span', { clase: 'medidor' }, [el('span', { clase: 'medidor__pista', 'aria-hidden': 'true' }, el('span', { estilo: `width:${Math.max(0, Math.min(100, frac * 100))}%` })), el('span', { texto: F.pct(frac) })]);
+
+  function leyenda(cont, series, forma = 'linea') {
+    cont.replaceChildren(...series.map((s) => el('span', { clase: 'leyenda__item' }, [
+      el('span', { clase: `clave clave--${s.forma || forma}${s.enfasis ? ' clave--enfasis' : ''}`, estilo: `background:${s.color}${s.punteada ? ';background:repeating-linear-gradient(90deg,' + s.color + ' 0 5px,transparent 5px 8px)' : ''}` }),
+      el('span', { texto: s.nombre }),
+    ])));
+  }
+  function lectura(id, partes) {
+    const cont = $(id);
+    if (!partes) return cont.replaceChildren(document.createTextNode('Sin datos para los filtros seleccionados.'));
+    cont.replaceChildren(...partes.map((p) => (typeof p === 'string' ? document.createTextNode(p) : el('strong', { texto: p.b }))));
+  }
+  const fuerte = (b) => ({ b });
+  const flecha = (d) => (d > 0 ? '▲' : d < 0 ? '▼' : '=');
+
+  // ---------------------------------------------------------------- página 1 · resumen
+  function pintarResumen() {
+    const grp = grupo();
+    const invL = necesario(LGBM), invC = necesario(CLASICA);
+    const ahorro = fin(invL) && fin(invC) ? invL / invC - 1 : null;
+    $('#k-inv').textContent = F.usd(invL);
+    $('#k-inv-delta').textContent = fin(ahorro) ? `${flecha(ahorro)} ${F.pct(Math.abs(ahorro), 0)} frente a la política clásica (${F.usd(invC)})` : 'La política clásica no alcanza 95% en este escenario';
+    $('#k-inv-nota').textContent = `Inventario promedio, USD a costo · ${E.lt} días de lead time · ${textoGrupo()}`;
+
+    const W = wrmsseMedio();
+    const bases = M.modelos_base.filter((m) => fin(W[m]));
+    const mejor = bases.reduce((a, b) => (W[a] <= W[b] ? a : b));
+    $('#k-wrmsse').textContent = F.dec3(W[LGBM]);
+    $('#k-wrmsse-delta').textContent = `${F.signo(W[LGBM] / W.SeasonalNaive - 1)} frente a SeasonalNaive`;
+    $('#k-wrmsse-nota').textContent = `${F.signo(W[LGBM] / W[mejor] - 1)} frente a ${mejor}, el mejor baseline`;
+
+    const sim = escenarioSim(LGBM);
+    $('#k-fill').textContent = sim ? F.pct(sim.fill_rate) : '–';
+    $('#k-fill-delta').textContent = sim ? `Objetivo nominal ${textoNs(E.ns)} · servicio de ciclo ${F.pct(sim.cycle_service)}` : '';
+    $('#k-fill-nota').textContent = `Política con LightGBM, ${textoGrupo()}`;
+
+    const sel = skusFiltrados();
+    $('#k-fc').textContent = F.entero(suma(sel.map((i) => suma(S.pronostico[i])))) + ' u';
+    $('#k-fc-delta').textContent = `${F.entero(sel.length)} de ${F.entero(NSKU)} productos con los filtros`;
+    $('#k-fc-nota').textContent = `Del ${F.diaMes(FECHAS[0])} al ${F.fecha(FECHAS.at(-1))}`;
+
+    lectura('#l-resumen', fin(invL) ? [
+      `Con ${E.lt} días de lead time, la política basada en el pronóstico de LightGBM atiende el 95% de la demanda de ${textoGrupo()} con `, fuerte(F.usd(invL)),
+      ' de inventario promedio', ...(fin(ahorro) ? [', ', fuerte(`${F.pct(Math.abs(ahorro), 0)} ${ahorro < 0 ? 'menos' : 'más'}`), ` que una política clásica de media móvil (${F.usd(invC)}).`] : ['.']),
+    ] : null);
+
+    // Curva servicio–inventario
+    const Fr = D.frontera;
+    const series = POLITICAS.map((p) => {
+      const filas = filasDonde(Fr, (k) => Fr.policy[k] === p && Fr.ss_method[k] === E.metodo && Fr.lead_time[k] === E.lt && Fr.group[k] === grp && Fr.fill_rate[k] >= 0.86);
+      return {
+        nombre: NOMBRE_POLITICA[p], color: COLOR_POLITICA[p], grosor: p === LGBM ? 3 : 2,
+        puntos: filas.map((k) => ({ x: Fr.avg_inv_value[k], y: Fr.fill_rate[k] * 100, tip: [filaTip(null, F.pct(Fr.fill_rate[k]), 'fill rate'), filaTip(null, F.usd(Fr.avg_inv_value[k]), 'inventario promedio'), filaTip(null, F.pct(Fr.service_level[k], 1), 'nivel nominal de z')] })),
+      };
+    });
+    leyenda($('#ley-curva'), series);
+    graficaXY($('#g-curva'), {
+      series, formatoX: F.usd, formatoEjeX: F.usdk, formatoY: (v) => N1.format(v) + '%', formatoEjeY: (v) => N0.format(v) + '%',
+      titulo: 'Curva servicio–inventario por política', guiaY: 95, etiquetaX: 'Inventario promedio (USD a costo)', alto: 320,
+      marcas: [{ x: invC, y: 95, color: COLOR_POLITICA[CLASICA], texto: F.usdk(invC) }, { x: invL, y: 95, color: COLOR_POLITICA[LGBM], texto: F.usdk(invL), izquierda: true }],
+    });
+    const niveles = [...new Set(Fr.service_level)].sort((a, b) => a - b);
+    tablaDatos($('#t-curva'), {
+      filas: niveles.map((nv) => ({ nv, ...Object.fromEntries(POLITICAS.map((p) => {
+        const k = filasDonde(Fr, (j) => Fr.policy[j] === p && Fr.ss_method[j] === E.metodo && Fr.lead_time[j] === E.lt && Fr.group[j] === grp && Fr.service_level[j] === nv)[0];
+        return [p, k == null ? null : { f: Fr.fill_rate[k], v: Fr.avg_inv_value[k] }];
+      })) })),
+      porPagina: 12, orden: { clave: 'nv', desc: true },
+      columnas: [
+        { clave: 'nv', titulo: 'Nivel nominal de z', num: true, valor: (f) => f.nv, formato: (f) => F.pct(f.nv, 2) },
+        ...POLITICAS.flatMap((p) => [
+          { clave: p + 'f', titulo: `Fill rate · ${NOMBRE_POLITICA[p]}`, num: true, valor: (f) => f[p]?.f, formato: (f) => F.pct(f[p]?.f) },
+          { clave: p + 'v', titulo: 'Inventario', num: true, valor: (f) => f[p]?.v, formato: (f) => F.usd(f[p]?.v) },
+        ]),
+      ],
+    });
+
+    const filasLt = M.lead_times.map((lt) => {
+      const l = necesario(LGBM, { lt }), c = necesario(CLASICA, { lt });
+      return { lt, l, c, d: fin(l) && fin(c) ? l / c - 1 : null };
+    }).filter((f) => fin(f.d));
+    graficaBarras($('#g-ahorro-lt'), {
+      filas: filasLt.map((f) => ({ etiqueta: `${f.lt} días`, valor: f.d * 100, texto: F.signo(f.d), color: 'var(--serie-1)', nombreValor: 'frente a la política clásica', extra: [filaTip(null, F.usd(f.l), 'con LightGBM'), filaTip(null, F.usd(f.c), 'política clásica')] })),
+      formato: (v) => N0.format(v) + '%', titulo: 'Diferencia de inventario por lead time',
+    });
+  }
+
+  // ---------------------------------------------------------------- página 2 · pronóstico
+  function pintarPronostico() {
+    const W = wrmsseMedio();
+    const bases = M.modelos_base.filter((m) => fin(W[m]));
+    const mejor = bases.reduce((a, b) => (W[a] <= W[b] ? a : b));
+    $('#k-p-wrmsse').textContent = F.dec3(W[LGBM]);
+    $('#k-p-wrmsse-delta').textContent = `${F.signo(W[LGBM] / W.SeasonalNaive - 1)} frente a SeasonalNaive · ${F.signo(W[LGBM] / W[mejor] - 1)} frente a ${mejor}`;
+
+    const G = D.segmentos;
+    const total = (m) => { const k = filasDonde(G, (j) => G.grouping[j] === 'total' && G.model[j] === m)[0]; return k == null ? null : G.wape[k]; };
+    const wapeBases = bases.map((m) => [m, total(m)]).filter(([, v]) => fin(v)).sort((a, b) => a[1] - b[1]);
+    $('#k-p-wape').textContent = F.pct(total(LGBM));
+    const dWape = total(LGBM) / wapeBases[0][1] - 1;
+    $('#k-p-wape-delta').textContent = Math.abs(dWape) < 0.01
+      ? `Prácticamente igual que ${wapeBases[0][0]} (${F.pct(wapeBases[0][1])}), el mejor baseline`
+      : `${F.signo(dWape, 1)} frente a ${wapeBases[0][0]} (${F.pct(wapeBases[0][1])})`;
+
+    const C = D.cobertura;
+    const cob = (lv) => { const k = filasDonde(C, (j) => C.grouping[j] === 'total' && C.level[j] === lv)[0]; return C.coverage[k]; };
+    $('#k-p-cob').textContent = F.pct(cob(80));
+    $('#k-p-cob-delta').textContent = `Nominal 80% · el de 95% cubre ${F.pct(cob(95))}`;
+
+    // Segmentos: LightGBM contra el mejor baseline de cada uno.
+    const segmentos = [...new Set(filasDonde(G, (j) => G.grouping[j] === 'segment').map((j) => G.group[j]))].sort();
+    const comp = segmentos.map((s) => {
+      const filas = filasDonde(G, (j) => G.grouping[j] === 'segment' && G.group[j] === s);
+      const de = (m) => G.wape[filas.find((j) => G.model[j] === m)];
+      const b = bases.map((m) => [m, de(m)]).filter(([, v]) => fin(v)).sort((a, c) => a[1] - c[1])[0];
+      return { s, n: G.n_skus[filas[0]], l: de(LGBM), base: b[0], b: b[1], d: de(LGBM) / b[1] - 1 };
+    });
+    const gana = comp.filter((c) => c.d < 0).map((c) => c.s);
+    const peor = comp.reduce((a, b) => (b.d > a.d ? b : a));
+    const lista = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)}` : xs[0] || '');
+    lectura('#l-pronostico', [
+      `En las 12 semanas de evaluación (${F.fecha(M.evaluacion_desde)} – ${F.fecha(M.historia_hasta)}), LightGBM tuvo el menor error: WRMSSE de `, fuerte(F.dec3(W[LGBM])),
+      ', ', fuerte(`${F.pct(Math.abs(W[LGBM] / W.SeasonalNaive - 1), 0)} menos`), ' que SeasonalNaive y ', fuerte(`${F.pct(Math.abs(W[LGBM] / W[mejor] - 1), 0)} menos`), ` que ${mejor}. `,
+      ...(gana.length ? [`Supera al mejor baseline en ${lista(gana)}, los segmentos de más venta; en el resto empata o pierde, con la mayor desventaja en ${peor.s} (${F.signo(peor.d)}), donde un promedio simple basta.`] : []),
+    ]);
+
+    // Real vs pronóstico por departamento.
+    const R = D.real_vs_pronostico, dept = E.dept || 'Total';
+    const filas = filasDonde(R, (k) => R.dept[k] === dept).sort((a, b) => (R.ds[a] < R.ds[b] ? -1 : 1));
+    const xs = filas.map((k) => R.ds[k]);
+    const seriesR = [
+      { nombre: 'Venta real', color: 'var(--tinta)', grosor: 2.5, enfasis: true, valores: filas.map((k) => R.real[k]) },
+      { nombre: 'LightGBM', color: 'var(--serie-1)', valores: filas.map((k) => R.LightGBM[k]) },
+      { nombre: 'AutoETS', color: 'var(--serie-2)', grosor: 1.5, valores: filas.map((k) => R.AutoETS[k]) },
+      { nombre: 'SeasonalNaive', color: 'var(--serie-3)', grosor: 1.5, valores: filas.map((k) => R.SeasonalNaive[k]) },
+    ];
+    $('#h-real').textContent = `Venta real y pronóstico de backtesting · ${dept === 'Total' ? 'todos los departamentos' : dept}`;
+    leyenda($('#ley-real'), seriesR);
+    graficaLineas($('#g-real'), { n: xs.length, series: seriesR, formato: (v) => F.entero(v) + ' u', formatoEje: F.entero, titulo: 'Venta real y pronóstico por día', ticks: ticksDias(xs), tituloX: (i) => F.diaSemana(xs[i]), alto: 300 });
+    tablaDatos($('#t-real'), {
+      filas: xs.map((d, i) => ({ d, v: seriesR.map((s) => s.valores[i]) })), porPagina: 14, orden: { clave: 'd', desc: true },
+      columnas: [{ clave: 'd', titulo: 'Día', valor: (f) => f.d, formato: (f) => F.fecha(f.d), encabezado: true },
+        ...seriesR.map((s, k) => ({ clave: 's' + k, titulo: s.nombre, num: true, valor: (f) => f.v[k], formato: (f) => F.entero(f.v[k]) }))],
+    });
+
+    const modelos = Object.entries(W).sort((a, b) => a[1] - b[1]);
+    graficaBarras($('#g-wrmsse'), {
+      filas: modelos.map(([m, v]) => ({ etiqueta: m, valor: v, color: m === LGBM ? 'var(--serie-1)' : 'var(--serie-otras)', nombreValor: 'WRMSSE' })),
+      formato: F.dec3, formatoEje: (v) => N1.format(v), titulo: 'WRMSSE promedio por modelo',
+    });
+    const Wf = D.wrmsse, cortes = [...new Set(Wf.cutoff)].sort();
+    tablaDatos($('#t-wrmsse'), {
+      filas: modelos.map(([m]) => ({ m, v: cortes.map((c) => Wf.value[filasDonde(Wf, (k) => Wf.model[k] === m && Wf.cutoff[k] === c && Wf.level[k] === 'WRMSSE')[0]]) })),
+      orden: { clave: 'p', desc: false },
+      columnas: [{ clave: 'm', titulo: 'Modelo', valor: (f) => f.m, encabezado: true },
+        ...cortes.map((c, k) => ({ clave: 'c' + k, titulo: `Corte ${F.diaMes(c)}`, num: true, valor: (f) => f.v[k], formato: (f) => F.dec3(f.v[k]) })),
+        { clave: 'p', titulo: 'Promedio', num: true, valor: (f) => promedio(f.v), formato: (f) => F.dec3(promedio(f.v)) }],
+    });
+
+    graficaBarras($('#g-segmentos'), {
+      filas: comp.map((c) => ({ etiqueta: c.s, valor: c.d * 100, texto: `${F.signo(c.d, 1)}`, color: c.d < 0 ? 'var(--serie-1)' : 'var(--serie-8)', nombreValor: `frente a ${c.base}`, extra: [filaTip(null, F.entero(c.n), 'productos'), filaTip(null, F.dec3(c.l), 'WAPE LightGBM'), filaTip(null, F.dec3(c.b), `WAPE ${c.base}`)] })),
+      formato: (v) => N0.format(v) + '%', titulo: 'Diferencia de WAPE contra el mejor baseline por segmento',
+    });
+    tablaDatos($('#t-segmentos'), {
+      filas: comp, orden: { clave: 's', desc: false },
+      columnas: [
+        { clave: 's', titulo: 'Segmento', valor: (f) => f.s, encabezado: true },
+        { clave: 'n', titulo: 'Productos', num: true, valor: (f) => f.n, formato: (f) => F.entero(f.n) },
+        { clave: 'l', titulo: 'WAPE LightGBM', num: true, valor: (f) => f.l, formato: (f) => F.dec3(f.l) },
+        { clave: 'base', titulo: 'Mejor baseline', valor: (f) => f.base },
+        { clave: 'b', titulo: 'WAPE baseline', num: true, valor: (f) => f.b, formato: (f) => F.dec3(f.b) },
+        { clave: 'd', titulo: 'Diferencia', num: true, valor: (f) => f.d, formato: (f) => F.signo(f.d, 1) },
+      ],
+    });
+
+    const H = D.error_horizonte;
+    const seriesH = [
+      { nombre: 'LightGBM', color: 'var(--serie-1)', valores: H.LightGBM },
+      { nombre: 'AutoETS', color: 'var(--serie-2)', valores: H.AutoETS },
+      { nombre: 'SeasonalNaive', color: 'var(--serie-3)', valores: H.SeasonalNaive },
+    ];
+    leyenda($('#ley-horizonte'), seriesH);
+    graficaLineas($('#g-horizonte'), {
+      n: H.paso.length, series: seriesH, formato: (v) => F.dec3(v), formatoEje: (v) => N2.format(v), titulo: 'WAPE por día del horizonte',
+      ticks: () => [0, 6, 13, 20, 27].map((i) => ({ i, texto: `día ${H.paso[i]}` })), tituloX: (i) => `Día ${H.paso[i]} del horizonte`, alto: 260,
+    });
+
+    const A = D.ablaciones;
+    tablaDatos($('#t-ablaciones'), {
+      filas: rango(A.variant.length).map((k) => ({ v: A.variant[k], w: A.wrmsse[k], d: A.wrmsse_vs_base[k], s: A.bias[k] })), sinOrden: true,
+      columnas: [
+        { clave: 'v', titulo: 'Variante', valor: (f) => f.v, encabezado: true },
+        { clave: 'w', titulo: 'WRMSSE', num: true, valor: (f) => f.w, formato: (f) => F.dec3(f.w) },
+        { clave: 'd', titulo: 'vs. base', num: true, valor: (f) => f.d, formato: (f) => (f.v === 'base' ? '–' : F.signo(f.d, 1)) },
+        { clave: 's', titulo: 'Sesgo', num: true, valor: (f) => f.s, formato: (f) => F.signo(f.s, 1) },
+      ],
+      pie: 'Positivo en "vs. base": la variante empeora el modelo.',
+    });
+  }
+
+  // ---------------------------------------------------------------- página 3 · inventario
+  function pintarInventario() {
+    const obj = E.objetivo, grp = grupo();
+    const inv = Object.fromEntries(POLITICAS.map((p) => [p, necesario(p, { objetivo: obj })]));
+    const vsC = (p) => (fin(inv[p]) && fin(inv[CLASICA]) ? inv[p] / inv[CLASICA] - 1 : null);
+    const nota = (p) => (fin(inv[p]) ? (p === CLASICA ? 'Referencia' : fin(vsC(p)) ? `${flecha(vsC(p))} ${F.pct(Math.abs(vsC(p)), 0)} frente a la clásica` : '') : `No alcanza ${textoNs(obj)} con ningún factor de seguridad`);
+    $('#k-i-lgbm').textContent = F.usd(inv[LGBM]); $('#k-i-lgbm-delta').textContent = nota(LGBM);
+    $('#k-i-clasica').textContent = F.usd(inv[CLASICA]); $('#k-i-clasica-delta').textContent = nota(CLASICA);
+    $('#k-i-naive').textContent = F.usd(inv[NAIVE]); $('#k-i-naive-delta').textContent = nota(NAIVE);
+
+    const porLt = M.lead_times.map((lt) => { const l = necesario(LGBM, { lt, objetivo: obj }), c = necesario(CLASICA, { lt, objetivo: obj }); return { lt, d: fin(l) && fin(c) ? l / c - 1 : null }; });
+    const conDato = porLt.filter((f) => fin(f.d));
+    lectura('#l-inventario', fin(inv[LGBM]) ? [
+      `Para atender el ${textoNs(obj)} de la demanda de ${textoGrupo()} con ${E.lt} días de lead time, la política con LightGBM necesita `, fuerte(F.usd(inv[LGBM])),
+      ...(fin(inv[CLASICA]) ? [' y la clásica ', fuerte(F.usd(inv[CLASICA])), '.'] : ['; la política clásica no llega a ese servicio.']),
+      ...(conDato.length > 1 ? [` Diferencia con la clásica por lead time: ${conDato.map((f) => `${F.signo(f.d)} con ${f.lt} días`).join(', ')}.`] : []),
+    ] : null);
+
+    // Escenarios
+    const filasEsc = [];
+    for (const lt of M.lead_times) for (const ns of M.niveles_servicio) {
+      const l = escenarioSim(LGBM, { lt, ns }), c = escenarioSim(CLASICA, { lt, ns });
+      filasEsc.push({ lt, ns, l, c });
+    }
+    tablaDatos($('#t-escenarios'), {
+      filas: filasEsc, sinOrden: true,
+      columnas: [
+        { clave: 'lt', titulo: 'Lead time', valor: (f) => f.lt, formato: (f) => `${f.lt} días`, encabezado: true },
+        { clave: 'ns', titulo: 'Nivel nominal', num: true, valor: (f) => f.ns, formato: (f) => textoNs(f.ns) },
+        { clave: 'lf', titulo: 'Fill rate · LightGBM', num: true, valor: (f) => f.l?.fill_rate, formato: (f) => F.pct(f.l?.fill_rate) },
+        { clave: 'lc', titulo: 'Servicio de ciclo', num: true, valor: (f) => f.l?.cycle_service, formato: (f) => F.pct(f.l?.cycle_service) },
+        { clave: 'li', titulo: 'Inventario', num: true, valor: (f) => f.l?.avg_inv_value, formato: (f) => F.usd(f.l?.avg_inv_value) },
+        { clave: 'cf', titulo: 'Fill rate · clásica', num: true, valor: (f) => f.c?.fill_rate, formato: (f) => F.pct(f.c?.fill_rate) },
+        { clave: 'ci', titulo: 'Inventario', num: true, valor: (f) => f.c?.avg_inv_value, formato: (f) => F.usd(f.c?.avg_inv_value) },
+      ],
+    });
+
+    // Nominal vs logrado (los tres métodos, incluido el empírico, que la simulación sí evalúa).
+    const X = D.escenarios;
+    const seriesN = ['sqrt', 'acumulado', 'empirico'].map((m, k) => ({
+      nombre: METODOS[m], color: `var(--serie-${[1, 2, 3][k]})`, marcadores: true,
+      puntos: filasDonde(X, (j) => X.policy[j] === LGBM && X.ss_method[j] === m && X.lead_time[j] === E.lt && X.group[j] === grp)
+        .map((j) => ({ x: X.service_level[j] * 100, y: X.cycle_service[j] * 100, tip: [filaTip(null, F.pct(X.cycle_service[j]), 'logrado'), filaTip(null, textoNs(X.service_level[j]), 'nominal')] })),
+    }));
+    const diag = { nombre: 'Logrado = nominal', color: 'var(--eje)', punteada: true, grosor: 1.5, puntos: [{ x: 89, y: 89 }, { x: 100, y: 100 }] };
+    leyenda($('#ley-nominal'), [...seriesN, diag]);
+    graficaXY($('#g-nominal'), {
+      series: [diag, ...seriesN], formatoX: (v) => N1.format(v) + '%', formatoEjeX: (v) => N0.format(v) + '%', formatoY: (v) => N1.format(v) + '%', formatoEjeY: (v) => N0.format(v) + '%',
+      titulo: 'Servicio de ciclo nominal contra logrado', etiquetaX: 'Nivel de servicio nominal', rangoY: [78, 100], ticksX: [90, 95, 99], alto: 290,
+    });
+
+    // Por clase
+    tablaDatos($('#t-clases'), {
+      filas: ['A', 'B', 'C', 'Total'].map((g) => ({ g, ...Object.fromEntries(POLITICAS.map((p) => [p, necesario(p, { grp: g, objetivo: obj })])) })), sinOrden: true,
+      columnas: [
+        { clave: 'g', titulo: 'Clase', valor: (f) => f.g, encabezado: true },
+        ...[CLASICA, NAIVE, LGBM].map((p) => ({ clave: p, titulo: NOMBRE_POLITICA[p], num: true, valor: (f) => f[p], formato: (f) => (fin(f[p]) ? F.usd(f[p]) : 'no alcanza') })),
+        { clave: 'd', titulo: 'LightGBM vs. clásica', num: true, valor: (f) => (fin(f[LGBM]) && fin(f[CLASICA]) ? f[LGBM] / f[CLASICA] - 1 : null), formato: (f) => (fin(f[LGBM]) && fin(f[CLASICA]) ? F.signo(f[LGBM] / f[CLASICA] - 1) : '–') },
+      ],
+    });
+
+    const K = D.costos;
+    const holding = [...new Set(K.holding_rate_annual)].sort(), pedidos = [...new Set(K.order_cost)].sort((a, b) => a - b);
+    tablaDatos($('#t-costos'), {
+      filas: holding.map((h) => ({ h, v: pedidos.map((o) => K.reduction[filasDonde(K, (k) => K.holding_rate_annual[k] === h && K.order_cost[k] === o)[0]]) })), sinOrden: true,
+      columnas: [
+        { clave: 'h', titulo: 'Mantener (anual)', valor: (f) => f.h, formato: (f) => F.pct(f.h, 0), encabezado: true },
+        ...pedidos.map((o, k) => ({ clave: 'o' + k, titulo: `USD ${N2.format(o)} por pedido`, num: true, valor: (f) => f.v[k], formato: (f) => F.signo(f.v[k], 1) })),
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------- página 4 · producto
+  // Simulación de la política con la demanda pronosticada. Replica src/inventory/policy.simulate_policy:
+  // llega lo pedido hace `lt` días, se atiende la demanda, y al cierre se pide hasta ROP + lote si la
+  // posición de inventario (disponible + en tránsito) quedó en o por debajo del punto de reorden.
+  function proyectar(demanda, rop, lote, lt, inicial) {
+    const n = demanda.length, llegadas = new Array(n + lt).fill(0);
+    let disponible = inicial, transito = 0, perdido = 0;
+    const cierre = [], pedidos = [];
+    for (let t = 0; t < n; t++) {
+      disponible += llegadas[t]; transito -= llegadas[t];
+      const venta = Math.min(disponible, demanda[t]);
+      disponible -= venta; perdido += demanda[t] - venta;
+      const posicion = disponible + transito;
+      const q = posicion <= rop ? Math.ceil(Math.max(rop + lote - posicion, 0)) : 0;
+      llegadas[t + lt] += q; transito += q;
+      cierre.push(disponible); pedidos.push(q);
+    }
+    return { cierre, pedidos, perdido };
+  }
+
+  function politicaSku(i) {
+    const k = escenario();
+    return { ss: S.ss[i][k], rop: S.rop[i][k], dem: S[`dem_lt${E.lt}`][i], lote: S.lote[i] };
+  }
+
+  function opcionesSku() {
+    const sel = skusFiltrados();
+    const cont = $('#f-sku');
+    cont.replaceChildren(...sel.map((i) => el('option', { value: i, texto: `${S.id[i]} · ${S.abc[i]}${S.xyz[i]} · ${PATRON[S.patron[i]] || S.patron[i]}` })));
+    if (!sel.includes(E.sku)) { E.sku = sel[0] ?? null; E.inventario = null; }
+    if (E.sku != null) cont.value = String(E.sku);
+    return sel;
+  }
+
+  function pintarProducto() {
+    const sel = opcionesSku();
+    if (E.sku == null) {
+      lectura('#l-producto', null);
+      for (const id of ['#g-sku', '#g-proyeccion', '#t-calculo', '#k-s-desempeno']) $(id).replaceChildren(vacio());
+      return;
+    }
+    const i = E.sku, p = politicaSku(i);
+    if (E.inventario == null) E.inventario = p.rop;
+    $('#f-inventario').value = String(E.inventario);
+    const pos = E.inventario;
+    const pedido = pos <= p.rop ? Math.ceil(p.rop + p.lote - pos) : 0;
+    const fc = S.pronostico[i];
+
+    $('#k-s-fc').textContent = F.entero(suma(fc));
+    $('#k-s-dem-et').textContent = `Demanda en ${E.lt} días`;
+    $('#k-s-dem').textContent = F.entero(p.dem);
+    $('#k-s-ss').textContent = F.entero(p.ss);
+    $('#k-s-rop').textContent = F.entero(p.rop);
+    $('#k-s-pedido').textContent = F.entero(pedido) + ' u';
+    $('#k-s-pedido-nota').textContent = pedido > 0 ? `Reponer hasta ${F.entero(p.rop + p.lote)} u` : 'Inventario por encima del punto de reorden';
+
+    lectura('#l-producto', [
+      `${S.id[i]} (segmento ${S.abc[i]}${S.xyz[i]}, ${PATRON[S.patron[i]] || S.patron[i]}): se pronostican `, fuerte(`${F.entero(suma(fc))} unidades`), ' en las próximas 4 semanas. ',
+      `Con ${E.lt} días de lead time y ${textoNs(E.ns)} de nivel de servicio, el punto de reorden es `, fuerte(`${F.entero(p.rop)} unidades`), `: con ${F.entero(pos)} disponibles, `,
+      ...(pedido > 0 ? ['conviene ', fuerte(`pedir ${F.entero(pedido)} unidades hoy`), '.'] : ['todavía no hace falta pedir.']),
+    ]);
+
+    // Pronóstico con intervalo (los márgenes conformales son constantes por producto).
+    const b = E.banda;
+    const lo = fc.map((v) => Math.max(0, v + S[`q_lo${b}`][i])), hi = fc.map((v) => Math.max(0, v + S[`q_hi${b}`][i]));
+    const serieFc = [{ nombre: 'Pronóstico LightGBM', color: 'var(--serie-1)', valores: fc, enfasis: true }];
+    leyenda($('#ley-sku'), [...serieFc, { nombre: `Intervalo de predicción ${b}%`, color: 'color-mix(in srgb, var(--serie-1) 30%, transparent)', forma: 'caja' }]);
+    $('#n-pronostico').textContent = `Unidades por día, del ${F.diaMes(FECHAS[0])} al ${F.fecha(FECHAS.at(-1))}. El intervalo sale de los errores del modelo en el backtesting de este producto.`;
+    graficaLineas($('#g-sku'), {
+      n: FECHAS.length, series: serieFc, formato: (v) => F.dec1(v) + ' u', formatoEje: F.entero, titulo: 'Pronóstico diario con intervalo', cero: true,
+      ticks: ticksDias(FECHAS), tituloX: (k) => F.diaSemana(FECHAS[k]), banda: { lo, hi, color: 'var(--serie-1)', nombre: `intervalo ${b}%` }, alto: 280,
+    });
+    for (const btn of document.querySelectorAll('#f-banda button')) btn.setAttribute('aria-pressed', String(Number(btn.dataset.banda) === b));
+    tablaDatos($('#t-sku'), {
+      filas: FECHAS.map((d, k) => ({ d, v: fc[k], lo: lo[k], hi: hi[k] })), porPagina: 14, orden: { clave: 'd', desc: false },
+      columnas: [
+        { clave: 'd', titulo: 'Día', valor: (f) => f.d, formato: (f) => F.diaSemana(f.d), encabezado: true },
+        { clave: 'v', titulo: 'Pronóstico', num: true, valor: (f) => f.v, formato: (f) => F.dec1(f.v) },
+        { clave: 'lo', titulo: `Mínimo ${b}%`, num: true, valor: (f) => f.lo, formato: (f) => F.dec1(f.lo) },
+        { clave: 'hi', titulo: `Máximo ${b}%`, num: true, valor: (f) => f.hi, formato: (f) => F.dec1(f.hi) },
+      ],
+    });
+
+    // Proyección
+    const sim = proyectar(fc, p.rop, p.lote, E.lt, pos);
+    const seriesP = [
+      { nombre: 'Inventario al cierre', color: 'var(--serie-1)', valores: sim.cierre, enfasis: true },
+      { nombre: 'Punto de reorden', color: 'var(--tinta-2)', punteada: true, grosor: 1.5, valores: FECHAS.map(() => p.rop) },
+      { nombre: 'Se coloca un pedido', color: 'var(--serie-2)', soloPuntos: true, forma: 'caja', valores: sim.cierre.map((v, k) => (sim.pedidos[k] > 0 ? v : null)), tip: (k) => `${F.entero(sim.pedidos[k])} u` },
+    ];
+    leyenda($('#ley-proyeccion'), seriesP);
+    $('#n-proyeccion').textContent = `Si la venta sigue el pronóstico. Cada pedido llega ${E.lt} días después de colocarse. ${sim.perdido > 0.5 ? `Con este inventario inicial se perderían ~${F.entero(sim.perdido)} unidades.` : 'Con este inventario inicial no se proyectan quiebres.'}`;
+    graficaLineas($('#g-proyeccion'), {
+      n: FECHAS.length, series: seriesP, formato: (v) => F.entero(v) + ' u', formatoEje: F.entero, titulo: 'Proyección del inventario', cero: true,
+      ticks: ticksDias(FECHAS), tituloX: (k) => F.diaSemana(FECHAS[k]), alto: 280,
+    });
+
+    const z = M.z[String(E.ns)];
+    const formula = E.metodo === 'sqrt' ? `z × σ(error diario) × √${E.lt}` : `z × σ(error acumulado en ${E.lt} días)`;
+    tablaDatos($('#t-calculo'), {
+      sinOrden: true,
+      filas: [
+        { p: 'Demanda esperada en el lead time', c: `suma del pronóstico de los próximos ${E.lt} días`, r: F.dec1(p.dem) + ' u' },
+        { p: 'Factor de seguridad', c: `z para ${textoNs(E.ns)} de servicio de ciclo`, r: N3.format(z) },
+        { p: 'Safety stock', c: `${formula}, redondeado hacia arriba`, r: F.entero(p.ss) + ' u' },
+        { p: 'Punto de reorden', c: 'demanda en el lead time + safety stock', r: F.entero(p.rop) + ' u' },
+        { p: 'Lote', c: `EOQ, acotado entre 1 y ${M.costos.cobertura_max_lote} días de demanda`, r: F.entero(p.lote) + ' u' },
+        { p: 'Pedido de hoy', c: 'si inventario ≤ punto de reorden: reponer hasta punto de reorden + lote', r: F.entero(pedido) + ' u' },
+      ],
+      columnas: [
+        { clave: 'p', titulo: 'Paso', valor: (f) => f.p, encabezado: true },
+        { clave: 'c', titulo: 'Cálculo', valor: (f) => f.c, formato: (f) => el('span', { clase: 'formula', texto: f.c }) },
+        { clave: 'r', titulo: 'Resultado', num: true, valor: (f) => f.r },
+      ],
+      pie: 'σ se mide con los errores del modelo en las 6 ventanas de backtesting de este producto.',
+    });
+
+    const kpi = (etq, val, nota) => el('div', { clase: 'kpi' }, [el('h3', { clase: 'kpi__etiqueta', texto: etq }), el('p', { clase: 'kpi__valor', texto: val }), el('p', { clase: 'kpi__nota', texto: nota })]);
+    $('#k-s-desempeno').replaceChildren(
+      kpi('WAPE', F.pct(S.wape[i]), 'error absoluto / demanda'),
+      kpi('Sesgo', F.signo(S.sesgo[i], 1), S.sesgo[i] > 0 ? 'sobre-pronostica' : 'sub-pronostica'),
+      kpi('Fill rate simulado', F.pct(S.fill_sim[i]), '% de la demanda atendida'),
+    );
+  }
+
+  // ---------------------------------------------------------------- página 5 · portafolio
+  function pintarPortafolio() {
+    const sel = skusFiltrados(), k = escenario();
+    const V = D.valor_ss;
+    const segOk = (s) => E.abc.has(s[0]) && E.xyz.has(s[1]);
+    const filasV = filasDonde(V, (j) => V.escenario[j] === k && segOk(V.segmento[j]) && (!E.dept || V.dept[j] === E.dept));
+    const valor = suma(filasV.map((j) => V.valor[j]));
+    $('#k-f-skus').textContent = F.entero(sel.length);
+    $('#k-f-skus-nota').textContent = `de ${F.entero(NSKU)} con los filtros`;
+    $('#k-f-fc').textContent = F.entero(suma(sel.map((i) => suma(S.pronostico[i]))));
+    const ss = suma(sel.map((i) => S.ss[i][k]));
+    $('#k-f-ss').textContent = F.entero(ss);
+    $('#k-f-valor').textContent = F.usd(valor);
+    $('#k-f-valor-nota').textContent = `USD a costo · ${E.lt} días, ${textoNs(E.ns)}, ${METODO_CORTO[E.metodo]}`;
+
+    const porSeg = {};
+    for (const j of filasV) porSeg[V.segmento[j]] = (porSeg[V.segmento[j]] || 0) + V.valor[j];
+    const segs = Object.keys(porSeg).sort();
+    const top = segs.length ? segs.reduce((a, b) => (porSeg[a] >= porSeg[b] ? a : b)) : null;
+    lectura('#l-portafolio', sel.length ? [
+      `Con ${E.lt} días de lead time y ${textoNs(E.ns)} de nivel de servicio, el colchón de los ${F.entero(sel.length)} productos seleccionados suma `, fuerte(`${F.entero(ss)} unidades`),
+      ' con un valor de ', fuerte(F.usd(valor)), ' a costo.', ...(top ? [` El segmento ${top} concentra `, fuerte(F.pct(porSeg[top] / valor, 0)), ' del valor.'] : []),
+    ] : null);
+
+    graficaBarras($('#g-valor'), {
+      filas: segs.map((s) => ({ etiqueta: s, valor: porSeg[s], texto: F.usd(porSeg[s]), color: 'var(--acento)', nombreValor: 'valor del safety stock', extra: [filaTip(null, F.pct(porSeg[s] / valor, 1), 'del total')] })),
+      formato: F.usd, formatoEje: F.usdk, titulo: 'Valor del safety stock por segmento',
+    });
+
+    const q = E.busqueda.trim().toLowerCase();
+    const filas = sel.filter((i) => !q || S.id[i].toLowerCase().includes(q)).map((i) => ({
+      i, id: S.id[i], seg: S.abc[i] + S.xyz[i], patron: S.patron[i], fc: suma(S.pronostico[i]), dem: S[`dem_lt${E.lt}`][i],
+      ss: S.ss[i][k], rop: S.rop[i][k], lote: S.lote[i], hasta: S.rop[i][k] + S.lote[i], wape: S.wape[i],
+    }));
+    tablaDatos($('#t-portafolio'), {
+      filas, porPagina: 20, orden: $('#t-portafolio')._tabla?.orden || { clave: 'rank', desc: false },
+      vacio: 'Ningún producto coincide con la búsqueda.',
+      columnas: [
+        { clave: 'rank', titulo: 'Producto', valor: (f) => f.i, formato: (f) => f.id, encabezado: true },
+        { clave: 'seg', titulo: 'Segmento', valor: (f) => f.seg },
+        { clave: 'patron', titulo: 'Patrón', valor: (f) => f.patron },
+        { clave: 'fc', titulo: 'Pronóstico 28 d', num: true, valor: (f) => f.fc, formato: (f) => F.entero(f.fc) },
+        { clave: 'dem', titulo: 'Demanda en lead time', num: true, valor: (f) => f.dem, formato: (f) => F.dec1(f.dem) },
+        { clave: 'ss', titulo: 'Safety stock', num: true, valor: (f) => f.ss, formato: (f) => F.entero(f.ss) },
+        { clave: 'rop', titulo: 'Punto de reorden', num: true, valor: (f) => f.rop, formato: (f) => F.entero(f.rop) },
+        { clave: 'lote', titulo: 'Lote', num: true, valor: (f) => f.lote, formato: (f) => F.entero(f.lote) },
+        { clave: 'hasta', titulo: 'Reponer hasta', num: true, valor: (f) => f.hasta, formato: (f) => F.entero(f.hasta) },
+        { clave: 'wape', titulo: 'WAPE', num: true, valor: (f) => f.wape, formato: (f) => F.pct(f.wape, 0) },
+      ],
+    });
+    $('#b-csv').onclick = () => {
+      const cab = ['producto', 'departamento', 'segmento', 'patron', 'pronostico_28d', 'demanda_lead_time', 'safety_stock', 'punto_reorden', 'lote', 'reponer_hasta'];
+      const lineas = [cab.join(','), ...filas.map((f) => [f.id, S.dept[f.i], f.seg, f.patron, f.fc.toFixed(1), f.dem.toFixed(1), f.ss, f.rop, f.lote, f.hasta].join(','))];
+      const url = URL.createObjectURL(new Blob([lineas.join('\n')], { type: 'text/csv' }));
+      el('a', { href: url, download: `politica_L${E.lt}_NS${Math.round(E.ns * 100)}_${E.metodo}.csv` }).click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+  }
+
+  // ---------------------------------------------------------------- controles y navegación
+  const PINTORES = { resumen: pintarResumen, pronostico: pintarPronostico, inventario: pintarInventario, producto: pintarProducto, portafolio: pintarPortafolio };
+  const sucias = new Set(Object.keys(PINTORES));
+
+  function sincronizarControles() {
+    for (const b of document.querySelectorAll('#f-lt button')) b.setAttribute('aria-pressed', String(Number(b.dataset.valor) === E.lt));
+    for (const b of document.querySelectorAll('#f-ns button')) b.setAttribute('aria-pressed', String(Number(b.dataset.valor) === E.ns));
+    for (const b of document.querySelectorAll('#f-objetivo button')) b.setAttribute('aria-pressed', String(Number(b.dataset.valor) === E.objetivo));
+    for (const b of document.querySelectorAll('#f-abc .chip')) b.setAttribute('aria-pressed', String(E.abc.has(b.dataset.valor)));
+    for (const b of document.querySelectorAll('#f-xyz .chip')) b.setAttribute('aria-pressed', String(E.xyz.has(b.dataset.valor)));
+    $('#f-metodo').value = E.metodo;
+    $('#f-dept').value = E.dept;
+    const clases = (set, todas) => (set.size === todas.length ? 'todas' : [...set].sort().join(', ') || 'ninguna');
+    $('#resumen-filtros').textContent = `${E.lt} días · ${textoNs(E.ns)} · ${METODO_CORTO[E.metodo]} · ABC: ${clases(E.abc, ['A', 'B', 'C'])} · XYZ: ${clases(E.xyz, ['X', 'Y', 'Z'])} · ${E.dept || 'todos los departamentos'}`;
+  }
+
+  function actualizar() {
+    ocultarTip();
+    sincronizarControles();
+    Object.keys(PINTORES).forEach((p) => sucias.add(p));
+    pintarPagina();
+  }
+  function pintarPagina() {
+    if (sucias.has(E.pagina)) { PINTORES[E.pagina](); sucias.delete(E.pagina); }
+  }
+  function mostrarPagina() {
+    const pedida = location.hash.replace('#', '');
+    E.pagina = PINTORES[pedida] ? pedida : 'resumen';
+    for (const s of document.querySelectorAll('main .pagina')) s.hidden = s.dataset.pagina !== E.pagina;
+    for (const a of document.querySelectorAll('.pestanas__lista a')) {
+      if (a.dataset.pagina !== E.pagina) { a.removeAttribute('aria-current'); continue; }
+      a.setAttribute('aria-current', 'page');
+      const lista = a.parentElement, izquierda = a.offsetLeft - lista.offsetLeft;
+      if (izquierda < lista.scrollLeft || izquierda + a.offsetWidth > lista.scrollLeft + lista.clientWidth) lista.scrollLeft = izquierda - 16;
+    }
+    ocultarTip();
+    pintarPagina();
+  }
+
+  function segmentado(cont, valores, texto) {
+    cont.replaceChildren(...valores.map((v) => el('button', { type: 'button', 'data-valor': v, texto: texto(v) })));
+  }
+  function chips(cont, valores) {
+    cont.replaceChildren(...valores.map((v) => el('button', { type: 'button', clase: 'chip chip--neutro', 'data-valor': v, 'aria-pressed': 'true' }, [el('span', { clase: 'chip__muestra', 'aria-hidden': 'true' }), el('span', { texto: v })])));
+  }
+
+  function iniciar() {
+    $('#m-historia').textContent = `${F.fecha(M.historia_desde)} – ${F.fecha(M.historia_hasta)}`;
+    $('#m-pronostico').textContent = `${F.diaMes(FECHAS[0])} – ${F.fecha(FECHAS.at(-1))}`;
+    $('#m-skus').textContent = `${F.entero(NSKU)} de alimentos`;
+    $('#bajada').textContent = `Pronóstico de 4 semanas para ${F.entero(NSKU)} productos de alimentos de una tienda Walmart en California (${M.tienda}) y la política de inventario que se deriva de él: safety stock, punto de reorden y cantidad a pedir, validada contra 12 semanas de demanda real.`;
+    const generado = new Date(M.generado_utc);
+    $('#pie-meta').textContent = [`generado ${FECHA_HORA.format(generado)}`, M.commit_git ? `commit ${M.commit_git.slice(0, 7)}` : null].filter(Boolean).join(' · ');
+
+    segmentado($('#f-lt'), M.lead_times, (v) => `${v} días`);
+    segmentado($('#f-ns'), M.niveles_servicio, textoNs);
+    segmentado($('#f-objetivo'), M.objetivos_fill_rate, textoNs);
+    $('#f-metodo').replaceChildren(...M.metodos_ss.map((m) => el('option', { value: m, texto: METODOS[m] })));
+    chips($('#f-abc'), ['A', 'B', 'C']);
+    chips($('#f-xyz'), ['X', 'Y', 'Z']);
+    $('#f-dept').replaceChildren(el('option', { value: '', texto: 'Todos' }), ...DEPTOS.map((d) => el('option', { value: d, texto: d })));
+
+    $('#f-lt').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { E.lt = Number(b.dataset.valor); E.inventario = null; actualizar(); } });
+    $('#f-ns').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { E.ns = Number(b.dataset.valor); E.inventario = null; actualizar(); } });
+    $('#f-objetivo').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { E.objetivo = Number(b.dataset.valor); actualizar(); } });
+    $('#f-metodo').addEventListener('change', (e) => { E.metodo = e.target.value; E.inventario = null; actualizar(); });
+    for (const [id, set] of [['#f-abc', 'abc'], ['#f-xyz', 'xyz']]) {
+      $(id).addEventListener('click', (e) => {
+        const b = e.target.closest('.chip');
+        if (!b) return;
+        const v = b.dataset.valor;
+        if (E[set].has(v)) { if (E[set].size > 1) E[set].delete(v); } else E[set].add(v);
+        actualizar();
+      });
+    }
+    $('#f-dept').addEventListener('change', (e) => { E.dept = e.target.value; actualizar(); });
+    $('#f-restablecer').addEventListener('click', () => {
+      Object.assign(E, { lt: INICIAL.lt, ns: INICIAL.ns, metodo: INICIAL.metodo, abc: new Set(INICIAL.abc), xyz: new Set(INICIAL.xyz), dept: INICIAL.dept, objetivo: 0.95, busqueda: '', inventario: null });
+      $('#b-sku').value = '';
+      actualizar();
+    });
+    $('#f-sku').addEventListener('change', (e) => { E.sku = Number(e.target.value); E.inventario = null; sucias.add('producto'); pintarPagina(); });
+    $('#f-inventario').addEventListener('change', (e) => {
+      const v = Math.max(0, Math.round(Number(e.target.value)));
+      E.inventario = fin(v) ? v : null;
+      sucias.add('producto'); pintarPagina();
+    });
+    $('#f-banda').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { E.banda = Number(b.dataset.banda); sucias.add('producto'); pintarPagina(); } });
+    let espera;
+    $('#b-sku').addEventListener('input', (e) => {
+      clearTimeout(espera);
+      espera = setTimeout(() => { E.busqueda = e.target.value; sucias.add('portafolio'); pintarPagina(); }, 150);
+    });
+    addEventListener('hashchange', mostrarPagina);
+
+    sincronizarControles();
+    mostrarPagina();
+    // Las etiquetas se miden con la fuente final: se vuelve a dibujar cuando termina de cargar.
+    if (document.fonts?.ready) document.fonts.ready.then(() => { Object.keys(PINTORES).forEach((p) => sucias.add(p)); pintarPagina(); });
+  }
+
+  iniciar();
+})();
+</script>

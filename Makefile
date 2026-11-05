@@ -1,7 +1,7 @@
 # Pipeline reproducible. Recetas de una sola línea: corren igual en cmd/sh (Windows) y Linux.
-#   make all   -> datos, clasificación, baselines, modelo, ablaciones, evaluación, política y datos de la app
+#   make all   -> datos, clasificación, baselines, modelo, ablaciones, evaluación, política y dashboard
 #   make notebooks -> ejecuta los notebooks y regenera las figuras
-#   make app   -> abre la app de Streamlit
+#   make dashboard -> genera el dashboard HTML (reports/dashboard/index.html)
 #   make test  -> pruebas unitarias
 #   make synthetic -> mini-M5 sintético (usar con DFI_DATA_DIR apuntando a otra carpeta; lo usa CI)
 
@@ -10,9 +10,9 @@ PY := uv run python
 # Los scripts imprimen caracteres no ASCII (→, σ); sin esto fallan en Windows al redirigir la salida.
 export PYTHONUTF8 := 1
 
-.PHONY: all data classify baselines train ablation evaluate policy app-data app notebooks synthetic test lint
+.PHONY: all data classify baselines train ablation evaluate policy dashboard notebooks synthetic test lint
 
-all: data classify baselines train ablation evaluate policy app-data
+all: data classify baselines train ablation evaluate policy dashboard
 
 data:
 	$(PY) -m src.data.download
@@ -36,11 +36,10 @@ evaluate:
 policy:
 	$(PY) -m src.inventory.policy
 
-app-data:
-	$(PY) -m src.data.export_app
-
-app:
-	uv run streamlit run app/streamlit_app.py
+# Extrae los resultados derivados (reports/dashboard/datos.json, versionado) y genera la página.
+dashboard:
+	$(PY) -m src.dashboard.datos
+	$(PY) -m src.dashboard.generar
 
 # Ejecuta los notebooks (fuente .py con jupytext) y guarda el .ipynb con resultados y figuras.
 notebooks:

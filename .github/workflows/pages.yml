@@ -1,0 +1,52 @@
+name: Dashboard en GitHub Pages
+
+# Publica el dashboard en isaacmartinez.space/Pronostico-de-Demanda-y-Politica-de-Inventario/.
+# La página se genera con los datos versionados en reports/dashboard/datos.json (solo resultados
+# derivados), así que este workflow no necesita M5 ni dependencias: basta Python estándar.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - reports/dashboard/datos.json
+      - src/dashboard/**
+      - src/config.py
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generar el dashboard
+        run: python -m src.dashboard.generar
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/dashboard/
+
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - name: Desplegar
+        id: despliegue
+        uses: actions/deploy-pages@v4

@@ -18,4 +18,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .claude/
-.streamlit/secrets.toml
+
+# El HTML del dashboard se genera (make dashboard / CI); solo se versionan sus datos
+reports/dashboard/index.html
